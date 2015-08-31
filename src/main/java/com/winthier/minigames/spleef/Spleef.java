@@ -20,6 +20,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import org.bukkit.Chunk;
+import org.bukkit.Effect;
 import org.bukkit.GameMode;
 import org.bukkit.Instrument;
 import org.bukkit.Location;
@@ -767,7 +768,14 @@ public class Spleef extends Game implements Listener
         if (state == State.SPLEEF) {
             Block block = event.getBlock();
             if (allowBlockBreaking && isSpleefBlock(block) && block.getType() != Material.AIR) {
-                event.getBlock().setType(Material.AIR, false);
+                world.spigot().playEffect(block.getLocation().add(0.5, 0.5, 0.5),
+                                          Effect.TILE_BREAK,
+                                          block.getType().getId(),
+                                          (int)block.getData(),
+                                          .5f, .5f, .5f,
+                                          .01f,
+                                          16, 32);
+                block.setType(Material.AIR, false);
             }
         }
         event.setCancelled(true);
