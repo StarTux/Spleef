@@ -16,6 +16,7 @@ public class SpleefPlayer
     boolean ready = false;
     boolean died = false;
     long offlineTicks = 0;
+    int lives = 0;
     
     public SpleefPlayer(Spleef game, UUID uuid)
     {

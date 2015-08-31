@@ -48,7 +48,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.util.Vector;
 
@@ -65,6 +64,7 @@ public class Spleef extends Game implements Listener
         State(long seconds) { this.seconds = seconds; }
     };
     final static long TIME_BEFORE_SPLEEF = 5;
+    final static int LIVES = 3;
     // Config
     String mapId = "Default";
     String mapPath = "/home/creative/minecraft/worlds/KoontzySpleef";
@@ -73,6 +73,7 @@ public class Spleef extends Game implements Listener
     World world;
     final Set<Material> spleefMats = EnumSet.noneOf(Material.class);
     final Set<Block> spleefBlocks = new HashSet<>();
+    final List<BlockState> spleefBlockStates = new ArrayList<>();
     final List<Location> spawnLocations = new ArrayList<>();
     boolean spawnLocationsRandomized = false;
     int spawnLocationsIndex = 0;
@@ -85,6 +86,7 @@ public class Spleef extends Game implements Listener
     BukkitRunnable task;
     boolean hasWinner = false;
     String winnerName = "";
+    int round = 0;
     // Scoreboard
     Scoreboard scoreboard;
     Objective sidebar;
@@ -110,7 +112,7 @@ public class Spleef extends Game implements Listener
         world = loader.getWorld(0);
         scanChunks();
         scanSpleefBlocks();
-        removeFloorUnderSpleefBlocks();
+        copySpleefBlocks();
         MinigamesPlugin.getEventManager().registerEvents(this, this);
         task = new BukkitRunnable() {
             @Override public void run() {
@@ -138,6 +140,7 @@ public class Spleef extends Game implements Listener
     {
         Players.reset(player);
         if (getSpleefPlayer(player).isPlayer()) {
+            getSpleefPlayer(player).setLives(3);
             sidebar.getScore(player.getName()).setScore(0);
         } else if (getSpleefPlayer(player).isSpectator()) {
             player.setGameMode(GameMode.SPECTATOR);
@@ -291,6 +294,28 @@ public class Spleef extends Game implements Listener
         getLogger().info("Found " + spleefBlocks.size() + " spleef blocks");
     }
 
+    void copySpleefBlocks()
+    {
+        for (Block block : spleefBlocks) {
+            spleefBlockStates.add(block.getState());
+        }
+    }
+
+    void restoreSpleefBlocks()
+    {
+        putFloorUnderSpleefBlocks();
+        for (BlockState state : spleefBlockStates) {
+            if (state.getBlock().getType() == Material.AIR) {
+                state.update(true, false);
+            }
+        }
+        new BukkitRunnable() {
+            @Override public void run() {
+                removeFloorUnderSpleefBlocks();
+            }
+        }.runTaskLater(MinigamesPlugin.getInstance(), 20L);
+    }
+
     void removeFloorUnderSpleefBlocks()
     {
         for (Block block : spleefBlocks) {
@@ -298,6 +323,13 @@ public class Spleef extends Game implements Listener
         }
     }
 
+    void putFloorUnderSpleefBlocks()
+    {
+        for (Block block : spleefBlocks) {
+            block.getRelative(0, -1, 0).setType(Material.BARRIER, false);
+        }
+    }
+    
     Object button(String chat, String tooltip, String command)
     {
         Map<String, Object> map = new HashMap<>();
@@ -408,9 +440,20 @@ public class Spleef extends Game implements Listener
         case WAIT_FOR_PLAYERS:
             break;
         case COUNTDOWN:
+            round += 1;
+            restoreSpleefBlocks();
+            setupScoreboard();
+            for (PlayerInfo info : getPlayers()) {
+                SpleefPlayer sp = getSpleefPlayer(info.getUuid());
+                if (sp.getLives() > 0) {
+                    sp.setPlayer();
+                    sidebar.getScore(sp.getName()).setScore(sp.getLives());
+                }
+            }
             int playerCount = 0;
             for (Player player : getOnlinePlayers()) {
                 if (getSpleefPlayer(player).isPlayer()) {
+                    player.setGameMode(GameMode.SURVIVAL);
                     makeImmobile(player);
                     playerCount += 1;
                 }
@@ -421,12 +464,10 @@ public class Spleef extends Game implements Listener
             }
             break;
         case SPLEEF:
-            setupScoreboard();
+            allowBlockBreaking = false;
             for (PlayerInfo info : getPlayers()) {
                 SpleefPlayer sp = getSpleefPlayer(info.getUuid());
-                if (sp.isPlayer()) {
-                    sidebar.getScore(sp.getName()).setScore(0);
-                }
+                sp.setDied(false);
             }
             for (Player player : getOnlinePlayers()) {
                 if (getSpleefPlayer(player).isPlayer()) makeMobile(player);
@@ -440,7 +481,7 @@ public class Spleef extends Game implements Listener
             String survivorName = null;
             for (PlayerInfo info : getPlayers()) {
                 SpleefPlayer sp = getSpleefPlayer(info.getUuid());
-                if (sp.isPlayer()) {
+                if (sp.getLives() > 0) {
                     survivorCount += 1;
                     survivorName = sp.getName();
                 }
@@ -507,7 +548,7 @@ public class Spleef extends Game implements Listener
             } else {
                 for (Player player : getOnlinePlayers()) {
                     Msg.send(player, "&aCountdown: %d", timeLeft);
-                    Title.show(player, "&a" + timeLeft, "&aCountdown");
+                    Title.show(player, "&a" + timeLeft, "&aRound " + this.round);
                     player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int)timeLeft));
                 }
             }
@@ -546,23 +587,39 @@ public class Spleef extends Game implements Listener
                     if (player.getLocation().getBlockY() < spleefLevel) {
                         sp.setSpectator();
                         sp.setDied(true);
+                        sp.setLives(sp.getLives() - 1);
+                        sidebar.getScore(sp.getName()).setScore(sp.getLives());
                         player.setGameMode(GameMode.SPECTATOR);
                         player.getWorld().strikeLightningEffect(player.getLocation());
                         for (Player other : getOnlinePlayers()) {
-                            Title.show(other, "", "&c" + player.getName() + " got spleef'd");
-                            Msg.send(other, "&c%s got spleef'd", player.getName());
+                            if (sp.getLives() > 0) {
+                                Title.show(other, "", "&c" + player.getName() + " got spleef'd and lost a life");
+                                Msg.send(other, "&c%s got spleef'd and lost a life", player.getName());
+                            } else {
+                                Title.show(other, "", "&c" + player.getName() + " got spleef'd and is out of the game");
+                                Msg.send(other, "&c%s got spleef'd and is out of the game", player.getName());
+                            }
                         }
                     } else {
                         aliveCount += 1;
                     }
                 }
             }
-            if (info.isOnline() && sp.isDied() && ticks % (20*10) == 0) {
+            if (info.isOnline() && sp.isDied() && sp.getLives() <= 0 && ticks % (20*10) == 0) {
                 sendDeathOption(info.getPlayer());
             }
         }
-        if (!debug && aliveCount <= 1) return State.END;
-        if (aliveCount == 0) return State.END;
+        if (aliveCount == 0 || (!debug && aliveCount <= 1)) {
+            int survivorCount = 0;
+            for (PlayerInfo info : getPlayers()) {
+                SpleefPlayer sp = getSpleefPlayer(info.getUuid());
+                if (sp.getLives() > 0) {
+                    survivorCount += 1;
+                }
+            }
+            if (survivorCount <= 1) return State.END;
+            return State.COUNTDOWN;
+        }
         return null;
     }
 
@@ -686,8 +743,6 @@ public class Spleef extends Game implements Listener
         if (state == State.SPLEEF) {
             Block block = event.getBlock();
             if (allowBlockBreaking && isSpleefBlock(block) && block.getType() != Material.AIR) {
-                Score score = sidebar.getScore(event.getPlayer().getName());
-                score.setScore(score.getScore() + 1);
                 event.getBlock().setType(Material.AIR, false);
             }
         }
