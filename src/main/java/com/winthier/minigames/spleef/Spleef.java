@@ -64,6 +64,7 @@ public class Spleef extends Game implements Listener
         long seconds;
         State(long seconds) { this.seconds = seconds; }
     };
+    final static long TIME_BEFORE_SPLEEF = 5;
     // Config
     String mapId = "Default";
     String mapPath = "/home/creative/minecraft/worlds/KoontzySpleef";
@@ -191,7 +192,12 @@ public class Spleef extends Game implements Listener
 
     void setSidebarTitle(String title, long ticks)
     {
-        ticks = state.seconds * 20 - ticks;
+        setSidebarTitle(title, ticks, state.seconds);
+    }
+
+    void setSidebarTitle(String title, long ticks, long secondsLeft)
+    {
+        ticks = secondsLeft * 20 - ticks;
         long seconds = ticks / 20;
         long minutes = seconds / 60;
         sidebar.setDisplayName(Msg.format("&a%s &f%02d&a:&f%02d", title, minutes, seconds % 60));
@@ -416,6 +422,12 @@ public class Spleef extends Game implements Listener
             break;
         case SPLEEF:
             setupScoreboard();
+            for (PlayerInfo info : getPlayers()) {
+                SpleefPlayer sp = getSpleefPlayer(info.getUuid());
+                if (sp.isPlayer()) {
+                    sidebar.getScore(sp.getName()).setScore(0);
+                }
+            }
             for (Player player : getOnlinePlayers()) {
                 if (getSpleefPlayer(player).isPlayer()) makeMobile(player);
                 ItemStack shovel = new ItemStack(Material.DIAMOND_SPADE);
@@ -515,7 +527,11 @@ public class Spleef extends Game implements Listener
             }
         }
         if (ticks % 20 == 0) {
-            setSidebarTitle("Spleef", ticks);
+            if (!allowBlockBreaking) {
+                setSidebarTitle("Run", ticks, TIME_BEFORE_SPLEEF);
+            } else {
+                setSidebarTitle("Spleef", ticks);
+            }
         }
         int aliveCount = 0;
         for (PlayerInfo info : getPlayers()) {
