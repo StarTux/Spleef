@@ -568,7 +568,7 @@ public class Spleef extends Game implements Listener
                 for (Player player : getOnlinePlayers()) {
                     Msg.send(player, "&a&lRUN!");
                     Title.show(player, "", "&a&lRUN");
-                    player.playSound(player.getEyeLocation(), Sound.ENDERDRAGON_GROWL, 1f, 1f);
+                    player.playSound(player.getEyeLocation(), Sound.FIREWORK_LARGE_BLAST, 1f, 1f);
                 }
             } else {
                 for (Player player : getOnlinePlayers()) {
@@ -772,9 +772,9 @@ public class Spleef extends Game implements Listener
                                           Effect.TILE_BREAK,
                                           block.getType().getId(),
                                           (int)block.getData(),
-                                          .5f, .5f, .5f,
+                                          .3f, .3f, .3f,
                                           .01f,
-                                          16, 32);
+                                          64, 64);
                 block.setType(Material.AIR, false);
             }
         }
