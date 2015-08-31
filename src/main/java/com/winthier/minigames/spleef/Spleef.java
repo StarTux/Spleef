@@ -75,6 +75,7 @@ public class Spleef extends Game implements Listener
     final Set<Block> spleefBlocks = new HashSet<>();
     final List<BlockState> spleefBlockStates = new ArrayList<>();
     final List<Location> spawnLocations = new ArrayList<>();
+    final List<String> credits = new ArrayList<>();
     boolean spawnLocationsRandomized = false;
     int spawnLocationsIndex = 0;
     int spleefLevel = 0;
@@ -145,6 +146,17 @@ public class Spleef extends Game implements Listener
         } else if (getSpleefPlayer(player).isSpectator()) {
             player.setGameMode(GameMode.SPECTATOR);
         }
+        new BukkitRunnable() {
+            @Override public void run() {
+                if (player.isValid()) {
+                    // TODO
+                    // showHighscore(player);
+                    player.sendMessage("");
+                    showCredits(player);
+                    player.sendMessage("");
+                }
+            }
+        }.runTaskLater(MinigamesPlugin.getInstance(), 20*5);
     }
 
     @Override
@@ -256,6 +268,11 @@ public class Spleef extends Game implements Listener
             Vector lookAt = world.getSpawnLocation().toVector().subtract(location.toVector());
             location = location.setDirection(lookAt);
             spawnLocations.add(location);
+        } else if ("[credits]".equals(name)) {
+            for (int i = 1; i < 4; ++i) {
+                String credit = sign.getLine(i);
+                if (credit != null) credits.add(credit);
+            }
         } else {
             return;
         }
@@ -387,6 +404,13 @@ public class Spleef extends Game implements Listener
         player.setFlySpeed(.1f);
         player.setFlying(false);
         player.setAllowFlight(false);
+    }
+
+    void showCredits(Player player)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (String credit : credits) sb.append(" ").append(credit);
+        Msg.send(player, "&b&l%s&r built by&b%s", mapId, sb.toString());
     }
 
     void sendDeathOption(Player player)
