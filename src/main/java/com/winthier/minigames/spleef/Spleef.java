@@ -582,7 +582,7 @@ public class Spleef extends Game implements Listener
 
     State tickSpleef(long ticks)
     {
-        if (ticks > state.seconds * 20) return State.END;
+        if (ticks > state.seconds * 20) return State.COUNTDOWN;
         if (!allowBlockBreaking && ticks > 20*5) {
             allowBlockBreaking = true;
             for (Player player : getOnlinePlayers()) {
