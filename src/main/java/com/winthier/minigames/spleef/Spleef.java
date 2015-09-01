@@ -128,6 +128,7 @@ public class Spleef extends Game implements Listener
         world.setGameRuleValue("doDaylightCycle", "true");
         world.setGameRuleValue("doTileDrops", "false");
         world.setGameRuleValue("sendCommandFeedback", "false");
+        world.setGameRuleValue("doFireTick", "false");
         ready();
     }
 
@@ -550,11 +551,15 @@ public class Spleef extends Game implements Listener
             }
         }
         int notReadyCount = 0;
+        int playerCount = 0;
         for (PlayerInfo info : getPlayers()) {
             SpleefPlayer sp = getSpleefPlayer(info.getUuid());
-            if (sp.isPlayer() && !sp.isReady()) notReadyCount += 1;
+            if (sp.isPlayer()) {
+                playerCount += 1;
+                if (!sp.isReady()) notReadyCount += 1;
+            }
         }
-        if (notReadyCount == 0) return State.COUNTDOWN;
+        if (notReadyCount == 0 && (debug || playerCount > 1)) return State.COUNTDOWN;
         return null;
     }
 
@@ -609,7 +614,7 @@ public class Spleef extends Game implements Listener
                     }
                 } else {
                     Player player = info.getPlayer();
-                    if (player.getLocation().getBlockY() < spleefLevel) {
+                    if (player.getLocation().getBlockY() < spleefLevel - 2) {
                         sp.setSpectator();
                         sp.setDied(true);
                         sp.setLives(sp.getLives() - 1);
