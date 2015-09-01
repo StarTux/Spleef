@@ -439,6 +439,10 @@ public class Spleef extends Game implements Listener
             cancel();
             return;
         }
+        if (state != State.INIT && getPlayers().isEmpty()) {
+            cancel();
+            return;
+        }
         long ticks = stateTicks++;
         State nextState = tickState(state, ticks);
         if (nextState != null && nextState != state) changeState(nextState);
