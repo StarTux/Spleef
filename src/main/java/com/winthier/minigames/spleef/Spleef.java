@@ -125,7 +125,7 @@ public class Spleef extends Game implements Listener
         setupScoreboard();
         world.setTime(1000L);
         world.setPVP(false);
-        world.setGameRuleValue("doDaylightCycle", "true");
+        world.setGameRuleValue("doDaylightCycle", "false");
         world.setGameRuleValue("doTileDrops", "false");
         world.setGameRuleValue("sendCommandFeedback", "false");
         world.setGameRuleValue("doFireTick", "false");
