@@ -40,6 +40,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -834,6 +836,18 @@ public class Spleef extends Game implements Listener
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerToggleFlight(PlayerToggleFlightEvent event)
+    {
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onFoodLevelChange(FoodLevelChangeEvent event)
+    {
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerDropItem(PlayerDropItemEvent event)
     {
         event.setCancelled(true);
     }
