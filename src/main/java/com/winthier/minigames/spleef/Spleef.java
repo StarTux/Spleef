@@ -65,12 +65,12 @@ public class Spleef extends Game implements Listener
         State(long seconds) { this.seconds = seconds; }
     };
     final static long TIME_BEFORE_SPLEEF = 5;
-    final static int LIVES = 5;
     // Config
     String mapId = "Default";
     String mapPath = "/home/creative/minecraft/worlds/KoontzySpleef";
     boolean debug = false;
     boolean solo = false;
+    int lives = 5;
     // World
     World world;
     final Set<Material> spleefMats = EnumSet.noneOf(Material.class);
@@ -130,6 +130,7 @@ public class Spleef extends Game implements Listener
         world.setGameRuleValue("doTileDrops", "false");
         world.setGameRuleValue("sendCommandFeedback", "false");
         world.setGameRuleValue("doFireTick", "false");
+        lives = getConfigFile("config").getInt("Lives", 5);
         ready();
     }
 
@@ -144,7 +145,7 @@ public class Spleef extends Game implements Listener
     {
         Players.reset(player);
         if (getSpleefPlayer(player).isPlayer()) {
-            getSpleefPlayer(player).setLives(LIVES);
+            getSpleefPlayer(player).setLives(lives);
             sidebar.getScore(player.getName()).setScore(0);
         } else if (getSpleefPlayer(player).isSpectator()) {
             player.setGameMode(GameMode.SPECTATOR);
