@@ -90,6 +90,8 @@ public class Spleef extends Game implements Listener
     boolean hasWinner = false;
     String winnerName = "";
     int round = 0;
+    boolean roundShouldEnd = false;
+    int roundShouldEndTicks = 0;
     // Scoreboard
     Scoreboard scoreboard;
     Objective sidebar;
@@ -533,6 +535,8 @@ public class Spleef extends Game implements Listener
                 shovel.addEnchantment(Enchantment.DIG_SPEED, 5);
                 player.setItemInHand(shovel);
             }
+            roundShouldEnd = false;
+            roundShouldEndTicks = 0;
             break;
         case END:
             int survivorCount = 0;
@@ -671,7 +675,8 @@ public class Spleef extends Game implements Listener
                 sendDeathOption(info.getPlayer());
             }
         }
-        if (aliveCount == 0 || (!solo && aliveCount <= 1)) {
+        if (aliveCount == 0 || (!solo && aliveCount <= 1)) roundShouldEnd = true;
+        if (roundShouldEnd && roundShouldEndTicks++ >= 20*3) {
             int survivorCount = 0;
             for (PlayerInfo info : getPlayers()) {
                 SpleefPlayer sp = getSpleefPlayer(info.getUuid());
