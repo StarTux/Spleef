@@ -65,11 +65,12 @@ public class Spleef extends Game implements Listener
         State(long seconds) { this.seconds = seconds; }
     };
     final static long TIME_BEFORE_SPLEEF = 5;
-    final static int LIVES = 3;
+    final static int LIVES = 5;
     // Config
     String mapId = "Default";
     String mapPath = "/home/creative/minecraft/worlds/KoontzySpleef";
     boolean debug = false;
+    boolean solo = false;
     // World
     World world;
     final Set<Material> spleefMats = EnumSet.noneOf(Material.class);
@@ -112,6 +113,7 @@ public class Spleef extends Game implements Listener
     void onWorldsLoaded(WorldLoader loader)
     {
         world = loader.getWorld(0);
+        world.setTime(1000L);
         scanChunks();
         scanSpleefBlocks();
         copySpleefBlocks();
@@ -123,7 +125,6 @@ public class Spleef extends Game implements Listener
         };
         task.runTaskTimer(MinigamesPlugin.getInstance(), 1, 1);
         setupScoreboard();
-        world.setTime(1000L);
         world.setPVP(false);
         world.setGameRuleValue("doDaylightCycle", "false");
         world.setGameRuleValue("doTileDrops", "false");
@@ -143,7 +144,7 @@ public class Spleef extends Game implements Listener
     {
         Players.reset(player);
         if (getSpleefPlayer(player).isPlayer()) {
-            getSpleefPlayer(player).setLives(3);
+            getSpleefPlayer(player).setLives(LIVES);
             sidebar.getScore(player.getName()).setScore(0);
         } else if (getSpleefPlayer(player).isSpectator()) {
             player.setGameMode(GameMode.SPECTATOR);
@@ -274,6 +275,28 @@ public class Spleef extends Game implements Listener
             for (int i = 1; i < 4; ++i) {
                 String credit = sign.getLine(i);
                 if (credit != null) credits.add(credit);
+            }
+        } else if ("[time]".equals(name)) {
+            long time = 0;
+            String arg = sign.getLine(1).toLowerCase();
+            if ("day".equals(arg)) {
+                time = 1000;
+            } else if ("night".equals(arg)) {
+                time = 13000;
+            } else if ("noon".equals(arg)) {
+                time = 6000;
+            } else if ("midnight".equals(arg)) {
+                time = 18000;
+            } else {
+                try {
+                    time = Long.parseLong(sign.getLine(1));
+                } catch (NumberFormatException nfe) {}
+            }
+            world.setTime(time);
+            if ("lock".equalsIgnoreCase(sign.getLine(2))) {
+                world.setGameRuleValue("doDaylightCycle", "false");
+            } else {
+                world.setGameRuleValue("doDaylightCycle", "true");
             }
         } else {
             return;
@@ -488,9 +511,13 @@ public class Spleef extends Game implements Listener
                     playerCount += 1;
                 }
             }
-            if (!debug && playerCount < 2) {
-                cancel();
-                return;
+            if (playerCount < 2) {
+                if (!debug) {
+                    cancel();
+                    return;
+                } else {
+                    solo = true;
+                }
             }
             break;
         case SPLEEF:
@@ -618,7 +645,7 @@ public class Spleef extends Game implements Listener
                     }
                 } else {
                     Player player = info.getPlayer();
-                    if (player.getLocation().getBlockY() < spleefLevel - 2) {
+                    if (player.getLocation().getBlockY() < spleefLevel) {
                         sp.setSpectator();
                         sp.setDied(true);
                         sp.setLives(sp.getLives() - 1);
@@ -643,7 +670,7 @@ public class Spleef extends Game implements Listener
                 sendDeathOption(info.getPlayer());
             }
         }
-        if (aliveCount == 0 || (!debug && aliveCount <= 1)) {
+        if (aliveCount == 0 || (!solo && aliveCount <= 1)) {
             int survivorCount = 0;
             for (PlayerInfo info : getPlayers()) {
                 SpleefPlayer sp = getSpleefPlayer(info.getUuid());
