@@ -45,6 +45,13 @@
       <version>0.1</version>
       <scope>provided</scope>
     </dependency>
+    <!-- Reward -->
+    <dependency>
+      <groupId>com.winthier.reward</groupId>
+      <artifactId>reward</artifactId>
+      <version>0.1</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

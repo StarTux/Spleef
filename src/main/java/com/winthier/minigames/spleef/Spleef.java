@@ -505,6 +505,7 @@ public class Spleef extends Game implements Listener
                 SpleefPlayer sp = getSpleefPlayer(info.getUuid());
                 if (sp.getLives() > 0) {
                     sp.setPlayer();
+                    sp.setPlayed(true);
                     sidebar.getScore(sp.getName()).setScore(sp.getLives());
                 }
             }
@@ -542,17 +543,18 @@ public class Spleef extends Game implements Listener
             break;
         case END:
             int survivorCount = 0;
-            String survivorName = null;
+            SpleefPlayer survivor = null;
             for (PlayerInfo info : getPlayers()) {
                 SpleefPlayer sp = getSpleefPlayer(info.getUuid());
                 if (sp.getLives() > 0) {
                     survivorCount += 1;
-                    survivorName = sp.getName();
+                    survivor = sp;
                 }
             }
             if (survivorCount == 1) {
                 hasWinner = true;
-                winnerName = survivorName;
+                winnerName = survivor.getName();
+                survivor.setWinner(true);
             }
             for (Player player : getOnlinePlayers()) {
                 if (getSpleefPlayer(player).isPlayer()) {
@@ -560,6 +562,9 @@ public class Spleef extends Game implements Listener
                     player.setGameMode(GameMode.SPECTATOR);
                 }
                 player.playSound(player.getEyeLocation(), Sound.ENDERDRAGON_DEATH, 1f, 1f);
+            }
+            for (PlayerInfo info : getPlayers()) {
+                getSpleefPlayer(info.getUuid()).reward();
             }
             break;
         }
@@ -820,6 +825,7 @@ public class Spleef extends Game implements Listener
                                           .01f,
                                           64, 64);
                 block.setType(Material.AIR, false);
+                getSpleefPlayer(event.getPlayer()).addBlockBroken();
             }
         }
         event.setCancelled(true);
