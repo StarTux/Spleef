@@ -35,11 +35,14 @@ import org.bukkit.block.Chest;
 import org.bukkit.block.Sign;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -61,7 +64,7 @@ public class Spleef extends Game implements Listener
         INIT(60),
         WAIT_FOR_PLAYERS(60),
         COUNTDOWN(5),
-        SPLEEF(60*5),
+        SPLEEF(90),
         END(60);
         long seconds;
         State(long seconds) { this.seconds = seconds; }
@@ -92,6 +95,7 @@ public class Spleef extends Game implements Listener
     boolean hasWinner = false;
     String winnerName = "";
     int round = 0;
+    boolean shovelsGiven = false;
     boolean roundShouldEnd = false;
     int roundShouldEndTicks = 0;
     // Scoreboard
@@ -533,11 +537,19 @@ public class Spleef extends Game implements Listener
                 sp.setDied(false);
             }
             for (Player player : getOnlinePlayers()) {
-                if (getSpleefPlayer(player).isPlayer()) makeMobile(player);
-                ItemStack shovel = new ItemStack(Material.DIAMOND_SPADE);
-                shovel.addEnchantment(Enchantment.DIG_SPEED, 5);
-                player.setItemInHand(shovel);
+                if (getSpleefPlayer(player).isPlayer()) {
+                    makeMobile(player);
+                    if (!shovelsGiven) {
+                        ItemStack pickaxe = new ItemStack(Material.DIAMOND_PICKAXE);
+                        pickaxe.addEnchantment(Enchantment.DIG_SPEED, 5);
+                        player.getInventory().addItem(pickaxe);
+                        ItemStack shovel = new ItemStack(Material.DIAMOND_SPADE);
+                        shovel.addEnchantment(Enchantment.DIG_SPEED, 5);
+                        player.getInventory().addItem(shovel);
+                    }
+                }
             }
+            shovelsGiven = true;
             roundShouldEnd = false;
             roundShouldEndTicks = 0;
             break;
@@ -812,6 +824,17 @@ public class Spleef extends Game implements Listener
     }
 
     @EventHandler(ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent event)
+    {
+        Block block = event.getBlock();
+        if (block.getType() == Material.TNT) {
+            block.setType(Material.AIR);
+            Location loc = block.getLocation().add(0.5, 0.0, 0.5);
+            TNTPrimed tnt = block.getWorld().spawn(loc, TNTPrimed.class);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
     public void onBlockDamage(BlockDamageEvent event)
     {
         if (state == State.SPLEEF) {
@@ -825,7 +848,13 @@ public class Spleef extends Game implements Listener
                                           .01f,
                                           64, 64);
                 block.setType(Material.AIR, false);
-                getSpleefPlayer(event.getPlayer()).addBlockBroken();
+                SpleefPlayer sp = getSpleefPlayer(event.getPlayer());
+                sp.addBlockBroken();
+                int broken = sp.getBlocksBroken();
+                if (broken > 0 && broken % 100 == 0) {
+                    ItemStack item = new ItemStack(Material.TNT);
+                    event.getPlayer().getInventory().addItem(item);
+                }
             }
         }
         event.setCancelled(true);
@@ -856,5 +885,19 @@ public class Spleef extends Game implements Listener
     public void onPlayerDropItem(PlayerDropItemEvent event)
     {
         event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityExplode(EntityExplodeEvent event) {
+        event.setCancelled(true);
+        for (Block block: event.blockList()) {
+            if (block.getType() != Material.AIR &&
+                spleefBlocks.contains(block)) {
+                block.setType(Material.AIR, false);
+            }
+        }
+        Location loc = event.getEntity().getLocation();
+        loc.getWorld().spigot().playEffect(loc, Effect.EXPLOSION_HUGE, 0, 0, 0.1f, 0.1f, 0.1f, 0.1f, 1, 64);
+        loc.getWorld().playSound(loc, Sound.EXPLODE, 1.0f, 1.0f);
     }
 }
