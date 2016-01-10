@@ -64,12 +64,13 @@ public class Spleef extends Game implements Listener
         INIT(60),
         WAIT_FOR_PLAYERS(60),
         COUNTDOWN(5),
-        SPLEEF(90),
+        SPLEEF(2*60),
         END(60);
         long seconds;
         State(long seconds) { this.seconds = seconds; }
     };
     final static long TIME_BEFORE_SPLEEF = 5;
+    final static long SUDDEN_DEATH_TIME = 60;
     // Config
     String mapId = "Default";
     String mapPath = "/home/creative/minecraft/worlds/KoontzySpleef";
@@ -83,6 +84,8 @@ public class Spleef extends Game implements Listener
     final List<BlockState> spleefBlockStates = new ArrayList<>();
     final List<Location> spawnLocations = new ArrayList<>();
     final List<String> credits = new ArrayList<>();
+    final Map<Block, Integer> suddenDeathTicks = new HashMap<>();
+    boolean suddenDeathActive = false;
     boolean spawnLocationsRandomized = false;
     int spawnLocationsIndex = 0;
     int spleefLevel = 0;
@@ -138,6 +141,9 @@ public class Spleef extends Game implements Listener
         world.setGameRuleValue("doTileDrops", "false");
         world.setGameRuleValue("sendCommandFeedback", "false");
         world.setGameRuleValue("doFireTick", "false");
+        world.setStorm(false);
+        world.setThundering(false);
+        world.setWeatherDuration(999999999);
         lives = getConfigFile("config").getInt("Lives", 5);
         ready();
     }
@@ -356,7 +362,7 @@ public class Spleef extends Game implements Listener
     {
         putFloorUnderSpleefBlocks();
         for (BlockState state : spleefBlockStates) {
-            if (state.getBlock().getType() == Material.AIR) {
+            if (state.getBlock().getType() != state.getType()) {
                 state.update(true, false);
             }
         }
@@ -381,6 +387,22 @@ public class Spleef extends Game implements Listener
         }
     }
     
+    Block spleefBlockUnderPlayer(Player player) {
+        Location loc = player.getLocation();
+        int bx = loc.getBlockX();
+        int bz = loc.getBlockZ();
+        int y = spleefLevel;
+        Block block = player.getWorld().getBlockAt(bx, y, bz);
+        if (block.getType() != Material.AIR && spleefBlocks.contains(block)) return block;
+        for (int dz = -1; dz <= 1; ++dz) {
+            for (int dx = -1; dx <= 1; ++dx) {
+                block = player.getWorld().getBlockAt(bx+dx, y, bz+dz);
+                if (block.getType() != Material.AIR && spleefBlocks.contains(block)) return block;
+            }
+        }
+        return null;
+    }
+
     Object button(String chat, String tooltip, String command)
     {
         Map<String, Object> map = new HashMap<>();
@@ -552,6 +574,8 @@ public class Spleef extends Game implements Listener
             shovelsGiven = true;
             roundShouldEnd = false;
             roundShouldEndTicks = 0;
+            suddenDeathTicks.clear();
+            suddenDeathActive = false;
             break;
         case END:
             int survivorCount = 0;
@@ -644,6 +668,8 @@ public class Spleef extends Game implements Listener
     State tickSpleef(long ticks)
     {
         if (ticks > state.seconds * 20) return State.COUNTDOWN;
+        long ticksLeft = state.seconds * 20 - ticks;
+        long secondsLeft = ticksLeft / 20;
         if (!allowBlockBreaking && ticks > 20*5) {
             allowBlockBreaking = true;
             for (Player player : getOnlinePlayers()) {
@@ -705,6 +731,46 @@ public class Spleef extends Game implements Listener
             }
             if (survivorCount <= 1) return State.END;
             return State.COUNTDOWN;
+        }
+        if (!suddenDeathActive) {
+            if (secondsLeft <= SUDDEN_DEATH_TIME) {
+                suddenDeathActive = true;
+                announceTitle("", "&4Sudden Death");
+                announce("&3&lSpleef&r Sudden Death activated. Blocks will fade under your feet.");
+                for (Player player: getOnlinePlayers()) {
+                    player.playSound(player.getEyeLocation(), Sound.WITHER_SPAWN, 1f, 1f);
+                }
+            }
+        } else {
+            for (Player player: getOnlinePlayers()) {
+                if (getSpleefPlayer(player).isPlayer()) {
+                    Block block = spleefBlockUnderPlayer(player);
+                    if (block != null) {
+                        Integer blockTicks = suddenDeathTicks.get(block);
+                        if (blockTicks == null) {
+                            blockTicks = 1;
+                        } else {
+                            blockTicks += 1;
+                        }
+                        suddenDeathTicks.put(block, blockTicks);
+                        if (blockTicks == 40) {
+                            block.setType(Material.AIR, false);
+                        } else if (blockTicks == 20) {
+                            Location loc = block.getLocation().add(0.5, 0.5, 0.5);
+                            World world = loc.getWorld();
+                            loc.getWorld().playSound(loc, Sound.ITEM_BREAK, 1.0f, 1.0f);
+                            world.spigot().playEffect(loc,
+                                                      Effect.TILE_BREAK,
+                                                      block.getType().getId(),
+                                                      (int)block.getData(),
+                                                      .3f, .3f, .3f,
+                                                      .01f,
+                                                      64, 64);
+                            block.setType(Material.BARRIER, false);
+                        }
+                    }
+                }
+            }
         }
         return null;
     }
