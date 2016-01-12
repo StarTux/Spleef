@@ -599,8 +599,10 @@ public class Spleef extends Game implements Listener
                 }
                 player.playSound(player.getEyeLocation(), Sound.ENDERDRAGON_DEATH, 1f, 1f);
             }
-            for (PlayerInfo info : getPlayers()) {
-                getSpleefPlayer(info.getUuid()).reward();
+            if (!debug) {
+                for (PlayerInfo info : getPlayers()) {
+                    getSpleefPlayer(info.getUuid()).reward();
+                }
             }
             break;
         }
