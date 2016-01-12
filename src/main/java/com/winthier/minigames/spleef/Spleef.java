@@ -894,11 +894,19 @@ public class Spleef extends Game implements Listener
     @EventHandler(ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event)
     {
-        Block block = event.getBlock();
-        if (block.getType() == Material.TNT) {
-            block.setType(Material.AIR);
+        event.setCancelled(true);
+        Player player = event.getPlayer();
+        ItemStack item = event.getPlayer().getItemInHand();
+        if (item.getType() == Material.TNT) {
+            Block block = event.getBlock();
             Location loc = block.getLocation().add(0.5, 0.0, 0.5);
             TNTPrimed tnt = block.getWorld().spawn(loc, TNTPrimed.class);
+            if (item.getAmount() > 1) {
+                item.setAmount(item.getAmount() - 1);
+                player.setItemInHand(item);
+            } else {
+                player.setItemInHand(null);
+            }
         }
     }
 
