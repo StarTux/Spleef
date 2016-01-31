@@ -539,6 +539,7 @@ public class Spleef extends Game implements Listener
             for (Player player : getOnlinePlayers()) {
                 if (getSpleefPlayer(player).isPlayer()) {
                     player.setGameMode(GameMode.SURVIVAL);
+                    getSpleefPlayer(player).setSpawnLocation(null);
                     makeImmobile(player);
                     playerCount += 1;
                 }
@@ -895,6 +896,7 @@ public class Spleef extends Game implements Listener
     public void onBlockPlace(BlockPlaceEvent event)
     {
         event.setCancelled(true);
+        if (state != State.SPLEEF || !allowBlockBreaking) return;
         Player player = event.getPlayer();
         ItemStack item = event.getPlayer().getItemInHand();
         if (item.getType() == Material.TNT) {
@@ -966,6 +968,7 @@ public class Spleef extends Game implements Listener
     @EventHandler(ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
         event.setCancelled(true);
+        if (state != State.SPLEEF || !allowBlockBreaking) return;
         for (Block block: event.blockList()) {
             if (block.getType() != Material.AIR &&
                 spleefBlocks.contains(block)) {
