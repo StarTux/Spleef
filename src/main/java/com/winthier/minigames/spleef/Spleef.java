@@ -91,6 +91,7 @@ public class Spleef extends Game implements Listener
     int spleefLevel = 0;
     boolean allowBlockBreaking = false;
     boolean suddenDeath = false;
+    int suddenDeathBlockTicks = 20;
     // State
     State state = State.INIT;
     long stateTicks = 0;
@@ -145,6 +146,7 @@ public class Spleef extends Game implements Listener
         world.setThundering(false);
         world.setWeatherDuration(999999999);
         lives = getConfigFile("config").getInt("Lives", 5);
+        suddenDeathBlockTicks = getConfigFile("config").getInt("SuddenDeathBlockTicks", 20);
         ready();
     }
 
@@ -598,7 +600,7 @@ public class Spleef extends Game implements Listener
                     getSpleefPlayer(player).setSpectator();
                     player.setGameMode(GameMode.SPECTATOR);
                 }
-                player.playSound(player.getEyeLocation(), Sound.ENDERDRAGON_DEATH, 1f, 1f);
+                player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDERDRAGON_DEATH, 1f, 1f);
             }
             if (!debug) {
                 for (PlayerInfo info : getPlayers()) {
@@ -655,7 +657,7 @@ public class Spleef extends Game implements Listener
                 for (Player player : getOnlinePlayers()) {
                     Msg.send(player, "&a&lRUN!");
                     Title.show(player, "", "&a&lRUN");
-                    player.playSound(player.getEyeLocation(), Sound.FIREWORK_LARGE_BLAST, 1f, 1f);
+                    player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_LARGE_BLAST, 1f, 1f);
                 }
             } else {
                 for (Player player : getOnlinePlayers()) {
@@ -678,7 +680,7 @@ public class Spleef extends Game implements Listener
             for (Player player : getOnlinePlayers()) {
                 Msg.send(player, "&a&lSPLEEF!");
                 Title.show(player, "", "&a&lSPLEEF");
-                player.playSound(player.getEyeLocation(), Sound.WITHER_SPAWN, 1f, 1f);
+                player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
             }
         }
         if (ticks % 20 == 0) {
@@ -741,7 +743,7 @@ public class Spleef extends Game implements Listener
                 announceTitle("", "&4Sudden Death");
                 announce("&3&lSpleef&r Sudden Death activated. Blocks will fade under your feet.");
                 for (Player player: getOnlinePlayers()) {
-                    player.playSound(player.getEyeLocation(), Sound.WITHER_SPAWN, 1f, 1f);
+                    player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
                 }
             }
         } else {
@@ -756,12 +758,12 @@ public class Spleef extends Game implements Listener
                             blockTicks += 1;
                         }
                         suddenDeathTicks.put(block, blockTicks);
-                        if (blockTicks == 40) {
+                        if (blockTicks == suddenDeathBlockTicks) {
                             block.setType(Material.AIR, false);
                         } else if (blockTicks == 20) {
                             Location loc = block.getLocation().add(0.5, 0.5, 0.5);
                             World world = loc.getWorld();
-                            loc.getWorld().playSound(loc, Sound.ITEM_BREAK, 1.0f, 1.0f);
+                            loc.getWorld().playSound(loc, Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f);
                             world.spigot().playEffect(loc,
                                                       Effect.TILE_BREAK,
                                                       block.getType().getId(),
@@ -898,7 +900,7 @@ public class Spleef extends Game implements Listener
         event.setCancelled(true);
         if (state != State.SPLEEF || !allowBlockBreaking) return;
         Player player = event.getPlayer();
-        ItemStack item = event.getPlayer().getItemInHand();
+        ItemStack item = event.getItemInHand();
         if (item.getType() == Material.TNT) {
             Block block = event.getBlock();
             Location loc = block.getLocation().add(0.5, 0.0, 0.5);
@@ -977,6 +979,6 @@ public class Spleef extends Game implements Listener
         }
         Location loc = event.getEntity().getLocation();
         loc.getWorld().spigot().playEffect(loc, Effect.EXPLOSION_HUGE, 0, 0, 0.1f, 0.1f, 0.1f, 0.1f, 1, 64);
-        loc.getWorld().playSound(loc, Sound.EXPLODE, 1.0f, 1.0f);
+        loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.0f);
     }
 }
