@@ -49,6 +49,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -907,9 +908,17 @@ public class Spleef extends Game implements Listener
             TNTPrimed tnt = block.getWorld().spawn(loc, TNTPrimed.class);
             if (item.getAmount() > 1) {
                 item.setAmount(item.getAmount() - 1);
-                player.setItemInHand(item);
+                if (event.getHand() == EquipmentSlot.HAND) {
+                    player.getInventory().setItemInMainHand(item);
+                } else if (event.getHand() == EquipmentSlot.OFF_HAND) {
+                    player.getInventory().setItemInOffHand(item);
+                }
             } else {
-                player.setItemInHand(null);
+                if (event.getHand() == EquipmentSlot.HAND) {
+                    player.getInventory().setItemInMainHand(null);
+                } else if (event.getHand() == EquipmentSlot.OFF_HAND) {
+                    player.getInventory().setItemInOffHand(null);
+                }
             }
         }
     }
