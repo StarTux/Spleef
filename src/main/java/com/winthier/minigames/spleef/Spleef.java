@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import org.bukkit.Chunk;
@@ -29,12 +30,16 @@ import org.bukkit.Material;
 import org.bukkit.Note;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Sign;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Creeper;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
@@ -95,6 +100,12 @@ public final class Spleef extends Game implements Listener {
     boolean allowBlockBreaking = false;
     boolean suddenDeath = false;
     int suddenDeathBlockTicks;
+    boolean creeperSpawning;
+    int creeperCooldown = 5;
+    double creeperChance;
+    double creeperPowerChance;
+    double creeperSpeedChance;
+    double creeperSpeedMultiplier;
     // State
     State state = State.INIT;
     long stateTicks = 0;
@@ -105,6 +116,8 @@ public final class Spleef extends Game implements Listener {
     boolean shovelsGiven = false;
     boolean roundShouldEnd = false;
     int roundShouldEndTicks = 0;
+    int creeperTimer = 0;
+    final Random random = new Random(System.currentTimeMillis());
     // Scoreboard
     Scoreboard scoreboard;
     Objective sidebar;
@@ -143,12 +156,19 @@ public final class Spleef extends Game implements Listener {
         world.setGameRuleValue("doTileDrops", "false");
         world.setGameRuleValue("sendCommandFeedback", "false");
         world.setGameRuleValue("doFireTick", "false");
+        world.setGameRuleValue("mobGriefing", "true");
         world.setStorm(false);
         world.setThundering(false);
         world.setWeatherDuration(999999999);
         world.setDifficulty(Difficulty.EASY);
         lives = getConfigFile("config").getInt("Lives", 5);
         suddenDeathBlockTicks = getConfigFile("config").getInt("SuddenDeathBlockTicks", 40);
+        creeperSpawning = getConfigFile("config").getBoolean("creeper.Spawn", false);
+        creeperCooldown = getConfigFile("config").getInt("creeper.Cooldown", 5);
+        creeperChance = getConfigFile("config").getDouble("creeper.Chance", 0.5);
+        creeperPowerChance = getConfigFile("config").getDouble("creeper.PowerChance", 0.33);
+        creeperSpeedChance = getConfigFile("config").getDouble("creeper.SpeedChance", 0.33);
+        creeperSpeedMultiplier = getConfigFile("config").getDouble("creeper.SpeedMultiplier", 1.0);
         ready();
     }
 
@@ -494,6 +514,15 @@ public final class Spleef extends Game implements Listener {
         State oldState = this.state;
         this.state = newState;
         stateTicks = 0;
+        for (Entity e: world.getEntities()) {
+            switch (e.getType()) {
+            case CREEPER:
+            case PRIMED_TNT:
+                e.remove();
+            default:
+                break;
+            }
+        }
         switch (newState) {
         case WAIT_FOR_PLAYERS:
             break;
@@ -551,6 +580,7 @@ public final class Spleef extends Game implements Listener {
             roundShouldEndTicks = 0;
             suddenDeathTicks.clear();
             suddenDeathActive = false;
+            creeperTimer = 0;
             break;
         case END:
             int survivorCount = 0;
@@ -702,7 +732,8 @@ public final class Spleef extends Game implements Listener {
                     survivorCount += 1;
                 }
             }
-            if (survivorCount <= 1) return State.END;
+            if (!solo && survivorCount <= 1) return State.END;
+            if (survivorCount <= 0) return State.END;
             return State.COUNTDOWN;
         }
         if (!suddenDeathActive) {
@@ -740,6 +771,26 @@ public final class Spleef extends Game implements Listener {
                                                       .01f,
                                                       64, 64);
                             block.setType(Material.BARRIER, false);
+                        }
+                    }
+                }
+            }
+        }
+        if (solo || (allowBlockBreaking && creeperSpawning)) {
+            creeperTimer += 1;
+            if (creeperTimer % 20 == 0 && creeperTimer >= creeperCooldown * 20 && random.nextDouble() < creeperChance) {
+                creeperTimer = 0;
+                List<Block> blockList = new ArrayList<>();
+                for (Block b: spleefBlocks) if (b.getType() != Material.AIR) blockList.add(b);
+                if (!blockList.isEmpty()) {
+                    Block creeperBlock = blockList.get(random.nextInt(blockList.size()));
+                    Creeper creeper = creeperBlock.getWorld().spawn(creeperBlock.getLocation().add(0.5, 1.0, 0.5), Creeper.class);
+                    if (creeper != null) {
+                        if (random.nextDouble() < creeperPowerChance) {
+                            creeper.setPowered(true);
+                        }
+                        if (random.nextDouble() < creeperSpeedChance) {
+                            creeper.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).addModifier(new AttributeModifier("Spleef", (float)creeperSpeedMultiplier, AttributeModifier.Operation.MULTIPLY_SCALAR_1));
                         }
                     }
                 }
