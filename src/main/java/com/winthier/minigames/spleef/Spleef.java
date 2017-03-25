@@ -94,7 +94,7 @@ public final class Spleef extends Game implements Listener {
     int spleefLevel = 0;
     boolean allowBlockBreaking = false;
     boolean suddenDeath = false;
-    int suddenDeathBlockTicks = 20;
+    int suddenDeathBlockTicks;
     // State
     State state = State.INIT;
     long stateTicks = 0;
@@ -148,7 +148,7 @@ public final class Spleef extends Game implements Listener {
         world.setWeatherDuration(999999999);
         world.setDifficulty(Difficulty.EASY);
         lives = getConfigFile("config").getInt("Lives", 5);
-        suddenDeathBlockTicks = getConfigFile("config").getInt("SuddenDeathBlockTicks", 20);
+        suddenDeathBlockTicks = getConfigFile("config").getInt("SuddenDeathBlockTicks", 40);
         ready();
     }
 
@@ -728,7 +728,7 @@ public final class Spleef extends Game implements Listener {
                         suddenDeathTicks.put(block, blockTicks);
                         if (blockTicks == suddenDeathBlockTicks) {
                             block.setType(Material.AIR, false);
-                        } else if (blockTicks == 20) {
+                        } else if (blockTicks == suddenDeathBlockTicks - 20) {
                             Location loc = block.getLocation().add(0.5, 0.5, 0.5);
                             World world = loc.getWorld();
                             loc.getWorld().playSound(loc, Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f);
