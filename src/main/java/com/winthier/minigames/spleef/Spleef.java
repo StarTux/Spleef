@@ -40,6 +40,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
@@ -58,6 +59,7 @@ import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SpawnEggMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
@@ -954,6 +956,13 @@ public final class Spleef extends Game implements Listener {
                 int broken = sp.getBlocksBroken();
                 if (broken > 0 && broken % 100 == 0) {
                     ItemStack item = new ItemStack(Material.TNT);
+                    event.getPlayer().getInventory().addItem(item);
+                }
+                if (broken > 0 && broken % 200 == 0) {
+                    ItemStack item = new ItemStack(Material.MONSTER_EGG);
+                    SpawnEggMeta meta = (SpawnEggMeta)item.getItemMeta();
+                    meta.setSpawnedType(EntityType.CREEPER);
+                    item.setItemMeta(meta);
                     event.getPlayer().getInventory().addItem(item);
                 }
             }
