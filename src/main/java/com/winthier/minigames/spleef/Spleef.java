@@ -10,6 +10,7 @@ import com.winthier.minigames.util.Title;
 import com.winthier.minigames.util.WorldLoader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -498,6 +499,21 @@ public final class Spleef extends Game implements Listener {
         long ticks = stateTicks++;
         State nextState = tickState(state, ticks);
         if (nextState != null && nextState != state) changeState(nextState);
+        for (Entity e: world.getEntities()) {
+            if (e instanceof Creeper) {
+                Block b = e.getLocation().getBlock().getRelative(0, -1, 0);
+                if (b.getType() == Material.AIR && spleefBlocks.contains(b)) {
+                    b.setType(Material.SNOW_BLOCK, false);
+                }
+                List<BlockFace> nbors = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST);
+                for (BlockFace face: nbors) {
+                    Block b2 = b.getRelative(face);
+                    if (b2.getType() == Material.AIR && spleefBlocks.contains(b2)) {
+                        b2.setType(Material.SNOW_BLOCK, false);
+                    }
+                }
+            }
+        }
     }
 
     State tickState(State state, long ticks) {
