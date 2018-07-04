@@ -4,9 +4,9 @@
   <groupId>com.winthier.minigames.spleef</groupId>
   <artifactId>spleef</artifactId>
   <packaging>jar</packaging>
-  <version>0.1</version>
+  <version>0.1-SNAPSHOT</version>
   <name>Spleef</name>
-  <url>http://maven.apache.org</url>
+  <url>https://cavetale.com</url>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
@@ -31,18 +31,18 @@
       <version>1.14.8</version>
       <scope>provided</scope>
     </dependency>
-    <!-- Minigames -->
+    <!-- SQL -->
     <dependency>
-      <groupId>com.winthier.minigames</groupId>
-      <artifactId>minigames</artifactId>
-      <version>0.1</version>
+      <groupId>com.winthier.sql</groupId>
+      <artifactId>sql</artifactId>
+      <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
-    <!-- Reward -->
+    <!-- Connect -->
     <dependency>
-      <groupId>com.winthier.reward</groupId>
-      <artifactId>reward</artifactId>
-      <version>0.1</version>
+      <groupId>com.winthier.connect</groupId>
+      <artifactId>connect</artifactId>
+      <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>

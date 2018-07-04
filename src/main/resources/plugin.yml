@@ -1,0 +1,11 @@
+name: Spleef
+description: The popular Spleef mini game
+authors: [ StarTux ]
+version: 0.1-SNAPSHOT
+main: com.winthier.minigames.spleef.Spleef
+depend: [ SQL, Connect ]
+softdepend: []
+commands:
+  colorfall:
+    aliases: [ready, tp, highscore, hi, quit]
+permissions: {}
