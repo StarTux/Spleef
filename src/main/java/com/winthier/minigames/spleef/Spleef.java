@@ -550,6 +550,7 @@ public final class Spleef extends JavaPlugin implements Listener {
         case WAIT_FOR_PLAYERS:
             break;
         case COUNTDOWN:
+            daemonGameConfig("players_may_join", false);
             round += 1;
             restoreSpleefBlocks();
             setupScoreboard();
@@ -606,6 +607,7 @@ public final class Spleef extends JavaPlugin implements Listener {
             creeperTimer = 0;
             break;
         case END:
+            daemonGameEnd();
             int survivorCount = 0;
             SpleefPlayer survivor = null;
             for (SpleefPlayer info : spleefPlayers.values()) {
@@ -1042,7 +1044,6 @@ public final class Spleef extends JavaPlugin implements Listener {
     }
 
     void daemonAddPlayer(UUID uuid) {
-        spleefPlayers.remove(uuid);
         Map<String, Object> map = new HashMap<>();
         map.put("action", "game_add_player");
         map.put("player", uuid.toString());
@@ -1051,11 +1052,26 @@ public final class Spleef extends JavaPlugin implements Listener {
     }
 
     void daemonAddSpectator(UUID uuid) {
-        spleefPlayers.remove(uuid);
         Map<String, Object> map = new HashMap<>();
         map.put("action", "game_add_spectator");
         map.put("player", uuid.toString());
         map.put("game", gameId.toString());
+        Connect.getInstance().send("daemon", "minigames", map);
+    }
+
+    void daemonGameEnd() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("action", "game_end");
+        map.put("game", gameId.toString());
+        Connect.getInstance().send("daemon", "minigames", map);
+    }
+
+    void daemonGameConfig(String key, Object value) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("action", "game_config");
+        map.put("game", gameId.toString());
+        map.put("key", key);
+        map.put("value", value);
         Connect.getInstance().send("daemon", "minigames", map);
     }
 }
