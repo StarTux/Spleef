@@ -148,7 +148,11 @@ public final class Spleef extends JavaPlugin implements Listener {
         WorldCreator wc = WorldCreator.name("GameWorld");
         wc.generator("VoidGenerator");
         wc.type(WorldType.FLAT);
-        wc.environment(World.Environment.valueOf(worldConfig.getString("world.Environment").toUpperCase()));
+        try {
+            wc.environment(World.Environment.valueOf(worldConfig.getString("world.Environment").toUpperCase()));
+        } catch (Throwable t) {
+            wc.environment(World.Environment.NORMAL);
+        }
         world = wc.createWorld();
 
         world.setTime(1000L);
