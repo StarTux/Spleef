@@ -3,7 +3,6 @@ package com.winthier.minigames.spleef;
 import java.util.UUID;
 import lombok.Data;
 import org.bukkit.Location;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
 @Data

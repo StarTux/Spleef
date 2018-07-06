@@ -1,6 +1,8 @@
 package com.winthier.minigames.spleef;
 
 import com.winthier.connect.Connect;
+import com.winthier.connect.Message;
+import com.winthier.connect.bukkit.event.ConnectMessageEvent;
 import java.io.FileReader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -1038,6 +1040,56 @@ public final class Spleef extends JavaPlugin implements Listener {
         loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.0f);
     }
 
+    // Daemon stuff
+
+    // Request from a player to join this game.  It gets sent to us by
+    // the daemon when the player enters the appropriate remote
+    // command.  Tell the daemon that that the request has been
+    // accepted, then wait for the daemon to send the player here.
+    @EventHandler
+    public void onConnectMessage(ConnectMessageEvent event) {
+        final Message message = event.getMessage();
+        if (message.getFrom().equals("daemon") && message.getChannel().equals("minigames")) {
+            Map<String, Object> payload = (Map<String, Object>)message.getPayload();
+            if (payload == null) return;
+            boolean join = false;
+            boolean leave = false;
+            boolean spectate = false;
+            switch ((String)payload.get("action")) {
+            case "player_join_game":
+                join = true;
+                spectate = false;
+                break;
+            case "player_spectate_game":
+                join = true;
+                spectate = true;
+                break;
+            case "player_leave_game":
+                leave = true;
+                break;
+            default:
+                return;
+            }
+            if (join) {
+                final UUID gameId = UUID.fromString((String)payload.get("game"));
+                if (!gameId.equals(gameId)) return;
+                final UUID player = UUID.fromString((String)payload.get("player"));
+                if (spectate) {
+                    getSpleefPlayer(player).setSpectator();
+                    daemonAddSpectator(player);
+                } else {
+                    if (state != State.WAIT_FOR_PLAYERS) return;
+                    if (spleefPlayers.containsKey(player)) return;
+                    daemonAddPlayer(player);
+                }
+            } else if (leave) {
+                final UUID playerId = UUID.fromString((String)payload.get("player"));
+                Player player = getServer().getPlayer(playerId);
+                if (player != null) player.kickPlayer("Leaving game");
+            }
+        }
+    }
+
     void daemonRemovePlayer(UUID uuid) {
         spleefPlayers.remove(uuid);
         Map<String, Object> map = new HashMap<>();
@@ -1078,4 +1130,6 @@ public final class Spleef extends JavaPlugin implements Listener {
         map.put("value", value);
         Connect.getInstance().send("daemon", "minigames", map);
     }
+
+    // End of Daemon stuff
 }
