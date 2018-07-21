@@ -19,12 +19,12 @@ import java.util.Set;
 import java.util.UUID;
 import org.bukkit.Chunk;
 import org.bukkit.Difficulty;
-import org.bukkit.Effect;
 import org.bukkit.GameMode;
 import org.bukkit.Instrument;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Note;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -131,7 +131,7 @@ public final class Spleef extends JavaPlugin implements Listener {
     Objective sidebar;
     final Map<UUID, SpleefPlayer> spleefPlayers = new HashMap<>();
 
-    @Override
+    @Override @SuppressWarnings("unchecked")
     public void onEnable() {
         ConfigurationSection gameConfig;
         ConfigurationSection worldConfig;
@@ -238,7 +238,7 @@ public final class Spleef extends JavaPlugin implements Listener {
 
     private void setupScoreboard() {
         scoreboard = getServer().getScoreboardManager().getNewScoreboard();
-        sidebar = scoreboard.registerNewObjective("Sidebar", "dummy");
+        sidebar = scoreboard.registerNewObjective("Sidebar", "dummy", "Spleef");
         sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
         sidebar.setDisplayName(Msg.format("&aSpleef"));
         for (SpleefPlayer info : spleefPlayers.values()) {
@@ -599,7 +599,7 @@ public final class Spleef extends JavaPlugin implements Listener {
                         ItemStack pickaxe = new ItemStack(Material.DIAMOND_PICKAXE);
                         pickaxe.addEnchantment(Enchantment.DIG_SPEED, 5);
                         player.getInventory().addItem(pickaxe);
-                        ItemStack shovel = new ItemStack(Material.DIAMOND_SPADE);
+                        ItemStack shovel = new ItemStack(Material.DIAMOND_SHOVEL);
                         shovel.addEnchantment(Enchantment.DIG_SPEED, 5);
                         player.getInventory().addItem(shovel);
                     }
@@ -633,7 +633,7 @@ public final class Spleef extends JavaPlugin implements Listener {
                     getSpleefPlayer(player).setSpectator();
                     player.setGameMode(GameMode.SPECTATOR);
                 }
-                player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDERDRAGON_DEATH, 1f, 1f);
+                player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, 1f, 1f);
             }
             break;
         }
@@ -682,7 +682,7 @@ public final class Spleef extends JavaPlugin implements Listener {
                 for (Player player : getServer().getOnlinePlayers()) {
                     Msg.send(player, "&a&lRUN!");
                     Msg.sendTitle(player, "", "&a&lRUN");
-                    player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_LARGE_BLAST, 1f, 1f);
+                    player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 1f, 1f);
                 }
             } else {
                 for (Player player : getServer().getOnlinePlayers()) {
@@ -789,13 +789,12 @@ public final class Spleef extends JavaPlugin implements Listener {
                             Location loc = block.getLocation().add(0.5, 0.5, 0.5);
                             World world = loc.getWorld();
                             loc.getWorld().playSound(loc, Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f);
-                            world.spigot().playEffect(loc,
-                                                      Effect.TILE_BREAK,
-                                                      block.getType().getId(),
-                                                      (int)block.getData(),
-                                                      .3f, .3f, .3f,
-                                                      .01f,
-                                                      64, 64);
+                            world.spawnParticle(Particle.BLOCK_DUST,
+                                                loc,
+                                                64,
+                                                .3f, .3f, .3f,
+                                                .01f,
+                                                block.getBlockData());
                             block.setType(Material.BARRIER, false);
                         }
                     }
@@ -975,13 +974,12 @@ public final class Spleef extends JavaPlugin implements Listener {
         if (state == State.SPLEEF) {
             Block block = event.getBlock();
             if (allowBlockBreaking && isSpleefBlock(block) && block.getType() != Material.AIR) {
-                world.spigot().playEffect(block.getLocation().add(0.5, 0.5, 0.5),
-                                          Effect.TILE_BREAK,
-                                          block.getType().getId(),
-                                          (int)block.getData(),
-                                          .3f, .3f, .3f,
-                                          .01f,
-                                          64, 64);
+                world.spawnParticle(Particle.BLOCK_DUST,
+                                    block.getLocation().add(0.5, 0.5, 0.5),
+                                    64,
+                                    .3f, .3f, .3f,
+                                    .01f,
+                                    block.getBlockData());
                 block.setType(Material.AIR, false);
                 SpleefPlayer sp = getSpleefPlayer(event.getPlayer());
                 sp.addBlockBroken();
@@ -991,10 +989,7 @@ public final class Spleef extends JavaPlugin implements Listener {
                     event.getPlayer().getInventory().addItem(item);
                 }
                 if (broken > 0 && broken % 200 == 0) {
-                    ItemStack item = new ItemStack(Material.MONSTER_EGG);
-                    SpawnEggMeta meta = (SpawnEggMeta)item.getItemMeta();
-                    meta.setSpawnedType(EntityType.CREEPER);
-                    item.setItemMeta(meta);
+                    ItemStack item = new ItemStack(Material.CREEPER_SPAWN_EGG);
                     event.getPlayer().getInventory().addItem(item);
                 }
             }
@@ -1036,7 +1031,7 @@ public final class Spleef extends JavaPlugin implements Listener {
             }
         }
         Location loc = event.getEntity().getLocation();
-        loc.getWorld().spigot().playEffect(loc, Effect.EXPLOSION_HUGE, 0, 0, 0.1f, 0.1f, 0.1f, 0.1f, 1, 64);
+        loc.getWorld().spawnParticle(Particle.EXPLOSION_HUGE, loc, 1, 0.1f, 0.1f, 0.1f, 0.1f);
         loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.0f);
     }
 
@@ -1046,7 +1041,7 @@ public final class Spleef extends JavaPlugin implements Listener {
     // the daemon when the player enters the appropriate remote
     // command.  Tell the daemon that that the request has been
     // accepted, then wait for the daemon to send the player here.
-    @EventHandler
+    @EventHandler @SuppressWarnings("unchecked")
     public void onConnectMessage(ConnectMessageEvent event) {
         final Message message = event.getMessage();
         if (message.getFrom().equals("daemon") && message.getChannel().equals("minigames")) {
