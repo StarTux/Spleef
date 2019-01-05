@@ -218,7 +218,7 @@ public final class Spleef extends JavaPlugin implements Listener {
         if (player != null) {
             player.kickPlayer("Leaving Game");
         }
-        daemonRemovePlayer(player.getUniqueId());
+        daemonRemovePlayer(uuid);
     }
 
     @EventHandler
