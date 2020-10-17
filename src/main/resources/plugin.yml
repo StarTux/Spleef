@@ -1,11 +1,11 @@
+main: com.winthier.minigames.spleef.Spleef
 name: Spleef
 description: The popular Spleef mini game
 authors: [ StarTux ]
 version: 0.1-SNAPSHOT
 api-version: 1.13
 website: https://cavetale.com
-main: com.winthier.minigames.spleef.Spleef
-depend: [ SQL, Connect ]
+depend: [SQL]
 softdepend: []
 commands:
   colorfall:

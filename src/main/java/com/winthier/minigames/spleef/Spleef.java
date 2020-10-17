@@ -1,8 +1,5 @@
 package com.winthier.minigames.spleef;
 
-import com.winthier.connect.Connect;
-import com.winthier.connect.Message;
-import com.winthier.connect.event.ConnectMessageEvent;
 import java.io.FileReader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -218,7 +215,6 @@ public final class Spleef extends JavaPlugin implements Listener {
         if (player != null) {
             player.kickPlayer("Leaving Game");
         }
-        daemonRemovePlayer(uuid);
     }
 
     @EventHandler
@@ -280,7 +276,7 @@ public final class Spleef extends JavaPlugin implements Listener {
 
     void scanChest(Chest chest) {
         Inventory inv = chest.getBlockInventory();
-        String name = inv.getName();
+        String name = chest.getCustomName();
         if ("[spleef]".equalsIgnoreCase(name)) {
             getLogger().info("Found spleef chest");
             spleefBlocks.add(chest.getBlock().getRelative(0, -1, 0));
@@ -556,7 +552,6 @@ public final class Spleef extends JavaPlugin implements Listener {
         case WAIT_FOR_PLAYERS:
             break;
         case COUNTDOWN:
-            daemonGameConfig("players_may_join", false);
             round += 1;
             restoreSpleefBlocks();
             setupScoreboard();
@@ -613,7 +608,6 @@ public final class Spleef extends JavaPlugin implements Listener {
             creeperTimer = 0;
             break;
         case END:
-            daemonGameEnd();
             int survivorCount = 0;
             SpleefPlayer survivor = null;
             for (SpleefPlayer info : spleefPlayers.values()) {
@@ -1034,97 +1028,4 @@ public final class Spleef extends JavaPlugin implements Listener {
         loc.getWorld().spawnParticle(Particle.EXPLOSION_HUGE, loc, 1, 0.1f, 0.1f, 0.1f, 0.1f);
         loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.0f);
     }
-
-    // Daemon stuff
-
-    // Request from a player to join this game.  It gets sent to us by
-    // the daemon when the player enters the appropriate remote
-    // command.  Tell the daemon that that the request has been
-    // accepted, then wait for the daemon to send the player here.
-    @EventHandler @SuppressWarnings("unchecked")
-    public void onConnectMessage(ConnectMessageEvent event) {
-        final Message message = event.getMessage();
-        if (message.getFrom().equals("daemon") && message.getChannel().equals("minigames")) {
-            Map<String, Object> payload = (Map<String, Object>)message.getPayload();
-            if (payload == null) return;
-            boolean join = false;
-            boolean leave = false;
-            boolean spectate = false;
-            switch ((String)payload.get("action")) {
-            case "player_join_game":
-                join = true;
-                spectate = false;
-                break;
-            case "player_spectate_game":
-                join = true;
-                spectate = true;
-                break;
-            case "player_leave_game":
-                leave = true;
-                break;
-            default:
-                return;
-            }
-            if (join) {
-                final UUID gameId = UUID.fromString((String)payload.get("game"));
-                if (!gameId.equals(gameId)) return;
-                final UUID player = UUID.fromString((String)payload.get("player"));
-                if (spectate) {
-                    getSpleefPlayer(player).setSpectator();
-                    daemonAddSpectator(player);
-                } else {
-                    if (state != State.WAIT_FOR_PLAYERS) return;
-                    if (spleefPlayers.containsKey(player)) return;
-                    daemonAddPlayer(player);
-                }
-            } else if (leave) {
-                final UUID playerId = UUID.fromString((String)payload.get("player"));
-                Player player = getServer().getPlayer(playerId);
-                if (player != null) player.kickPlayer("Leaving game");
-            }
-        }
-    }
-
-    void daemonRemovePlayer(UUID uuid) {
-        spleefPlayers.remove(uuid);
-        Map<String, Object> map = new HashMap<>();
-        map.put("action", "player_leave_game");
-        map.put("player", uuid.toString());
-        map.put("game", gameId.toString());
-        Connect.getInstance().send("daemon", "minigames", map);
-    }
-
-    void daemonAddPlayer(UUID uuid) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("action", "game_add_player");
-        map.put("player", uuid.toString());
-        map.put("game", gameId.toString());
-        Connect.getInstance().send("daemon", "minigames", map);
-    }
-
-    void daemonAddSpectator(UUID uuid) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("action", "game_add_spectator");
-        map.put("player", uuid.toString());
-        map.put("game", gameId.toString());
-        Connect.getInstance().send("daemon", "minigames", map);
-    }
-
-    void daemonGameEnd() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("action", "game_end");
-        map.put("game", gameId.toString());
-        Connect.getInstance().send("daemon", "minigames", map);
-    }
-
-    void daemonGameConfig(String key, Object value) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("action", "game_config");
-        map.put("game", gameId.toString());
-        map.put("key", key);
-        map.put("value", value);
-        Connect.getInstance().send("daemon", "minigames", map);
-    }
-
-    // End of Daemon stuff
 }
