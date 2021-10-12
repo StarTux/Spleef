@@ -22,7 +22,7 @@ public final class SpleefPlayer {
     int blocksBroken = 0;
     boolean hasJoinedBefore = false;
 
-    public SpleefPlayer(Spleef game, UUID uuid) {
+    public SpleefPlayer(final Spleef game, final UUID uuid) {
         this.game = game;
         this.uuid = uuid;
     }
