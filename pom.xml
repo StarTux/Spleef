@@ -1,7 +1,7 @@
 <project>
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.winthier.minigames.spleef</groupId>
+  <groupId>com.winthier.spleef</groupId>
   <artifactId>spleef</artifactId>
   <version>0.1-SNAPSHOT</version>
 
@@ -43,6 +43,30 @@
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <version>1.18.20</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Spawn -->
+    <dependency>
+      <groupId>com.winthier.spawn</groupId>
+      <artifactId>spawn</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Core -->
+    <dependency>
+      <groupId>com.cavetale.core</groupId>
+      <artifactId>core</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Sidebar -->
+    <dependency>
+      <groupId>com.cavetale.sidebar</groupId>
+      <artifactId>sidebar</artifactId>
+      <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
 

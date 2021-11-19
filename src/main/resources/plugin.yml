@@ -1,16 +1,25 @@
-main: com.winthier.minigames.spleef.Spleef
+main: com.winthier.spleef.SpleefPlugin
 name: Spleef
 
 version: 0.1
 api-version: 1.17
 
 description: The popular Spleef mini game
-authors: [ StarTux ]
+authors: [StarTux]
 website: https://cavetale.com
 
-depend: []
+depend: [Core, Spawn, Sidebar]
 softdepend: []
 
-commands: {}
+commands:
 
-permissions: {}
+  spleef:
+    aliases: [spleefadmin]
+    description: Admin command
+    permission: spleef.admin
+
+permissions:
+
+  spleef.admin:
+    description: Admin permission
+    default: op
