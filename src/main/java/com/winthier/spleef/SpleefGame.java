@@ -99,6 +99,7 @@ public final class SpleefGame {
     protected double creeperSpeedMultiplier = 1.0;
     protected boolean giveTNT = true;
     protected boolean giveCreeperEggs = true;
+    protected boolean placeCreeperSnowBlocks = false;
     // State
     protected State state = State.INIT;
     protected long stateTicks = 0;
@@ -408,7 +409,7 @@ public final class SpleefGame {
         State nextState = tickState(state, ticks);
         if (nextState != null && nextState != state) changeState(nextState);
         for (Entity e: world.getEntities()) {
-            if (e instanceof Creeper) {
+            if (placeCreeperSnowBlocks && e instanceof Creeper) {
                 Block b = e.getLocation().getBlock().getRelative(0, -1, 0);
                 if (b.getType() == Material.AIR && spleefBlocks.contains(b)) {
                     b.setType(Material.SNOW_BLOCK, false);
