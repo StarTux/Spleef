@@ -124,6 +124,7 @@ public final class SpleefGame {
         world.setGameRule(GameRule.MOB_GRIEFING, true);
         world.setGameRule(GameRule.NATURAL_REGENERATION, false);
         world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
+        world.setGameRule(GameRule.KEEP_INVENTORY, true);
         world.setStorm(false);
         world.setThundering(false);
         world.setWeatherDuration(999999999);
@@ -844,6 +845,8 @@ public final class SpleefGame {
         player.setFoodLevel(20);
         player.setSaturation(20.0f);
         player.getWorld().strikeLightningEffect(player.getLocation());
+        event.setKeepInventory(true);
+        event.getDrops().clear();
         info(player.getName() + " lost a life: " + sp.getLives());
         for (Player other : getPresentPlayers()) {
             if (sp.getLives() > 0) {
@@ -858,6 +861,7 @@ public final class SpleefGame {
                 other.sendMessage(message);
             }
         }
+        Bukkit.getScheduler().runTask(plugin, () -> player.teleport(world.getSpawnLocation()));
     }
 
     public void onPlayerToggleFlight(PlayerToggleFlightEvent event) {
