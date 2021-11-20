@@ -50,9 +50,11 @@ import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -62,12 +64,12 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
 @Getter @RequiredArgsConstructor
 public final class SpleefGame {
     static final long TIME_BEFORE_SPLEEF = 5;
-    static final long SUDDEN_DEATH_TIME = 60;
     protected final SpleefPlugin plugin;
     protected final World world;
     protected final String worldName;
@@ -85,9 +87,9 @@ public final class SpleefGame {
     protected boolean suddenDeathActive = false;
     protected boolean spawnLocationsRandomized = false;
     protected int spawnLocationsIndex = 0;
-    protected int spleefLevel = 0;
+    protected int deathLevel = 0;
+    protected List<Integer> spleefLevels = new ArrayList<>();
     protected boolean allowBlockBreaking = false;
-    protected boolean suddenDeath = false;
     protected int suddenDeathBlockTicks = 40;
     protected boolean creeperSpawning = true;
     protected int creeperCooldown = 5;
@@ -95,6 +97,8 @@ public final class SpleefGame {
     protected double creeperPowerChance = 0.33;
     protected double creeperSpeedChance = 0.33;
     protected double creeperSpeedMultiplier = 1.0;
+    protected boolean giveTNT = true;
+    protected boolean giveCreeperEggs = true;
     // State
     protected State state = State.INIT;
     protected long stateTicks = 0;
@@ -107,6 +111,7 @@ public final class SpleefGame {
     protected int creeperTimer = 0;
     protected final Random random = new Random(System.currentTimeMillis());
     protected final Map<UUID, SpleefPlayer> spleefPlayers = new HashMap<>();
+    protected long secondsLeft;
     protected BukkitTask task;
 
     protected void enable() {
@@ -116,6 +121,8 @@ public final class SpleefGame {
         world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, false);
         world.setGameRule(GameRule.DO_FIRE_TICK, false);
         world.setGameRule(GameRule.MOB_GRIEFING, true);
+        world.setGameRule(GameRule.NATURAL_REGENERATION, false);
+        world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
         world.setStorm(false);
         world.setThundering(false);
         world.setWeatherDuration(999999999);
@@ -129,6 +136,11 @@ public final class SpleefGame {
     protected void disable() {
         task.cancel();
         for (Player player : getPresentPlayers()) {
+            player.getInventory().clear();
+            player.setHealth(20.0);
+            player.setFoodLevel(20);
+            player.setSaturation(20.0f);
+            player.setGameMode(GameMode.ADVENTURE);
             Spawn.warp(player);
         }
         Worlds.deleteWorld(plugin, world);
@@ -144,6 +156,7 @@ public final class SpleefGame {
         sp.setPlayer();
         sp.setSpawnLocation(dealSpawnLocation());
         sp.setLives(lives);
+        player.getInventory().clear();
         player.setGameMode(GameMode.SURVIVAL);
         player.setHealth(20.0);
         player.setFoodLevel(20);
@@ -176,6 +189,11 @@ public final class SpleefGame {
                 scanChunk(spawnChunk.getX() + x, spawnChunk.getZ() + z);
             }
         }
+        if (spleefLevels.isEmpty()) {
+            throw new IllegalStateException("No chests, no spleef levels!");
+        }
+        Collections.sort(spleefLevels);
+        deathLevel = spleefLevels.get(0);
     }
 
     protected void scanChunk(int x, int z) {
@@ -192,7 +210,7 @@ public final class SpleefGame {
         if ("[spleef]".equalsIgnoreCase(name)) {
             info("Found spleef chest");
             spleefBlocks.add(chest.getBlock().getRelative(0, -1, 0));
-            spleefLevel = chest.getBlock().getY() - 1;
+            spleefLevels.add(chest.getBlock().getY() - 1);
             for (ItemStack item : inv.getContents()) {
                 if (item == null) continue;
                 if (item.getType() == Material.AIR) continue;
@@ -238,8 +256,6 @@ public final class SpleefGame {
             world.setTime(time);
             if ("lock".equalsIgnoreCase(PlainTextComponentSerializer.plainText().serialize(sign.line(2)))) {
                 world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
-            } else {
-                world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
             }
         } else {
             return;
@@ -311,20 +327,25 @@ public final class SpleefGame {
         }
     }
 
-    protected Block spleefBlockUnderPlayer(Player player) {
-        Location loc = player.getLocation();
-        int bx = loc.getBlockX();
-        int bz = loc.getBlockZ();
-        int y = spleefLevel;
-        Block block = player.getWorld().getBlockAt(bx, y, bz);
-        if (block.getType() != Material.AIR && spleefBlocks.contains(block)) return block;
-        for (int dz = -1; dz <= 1; ++dz) {
-            for (int dx = -1; dx <= 1; ++dx) {
-                block = player.getWorld().getBlockAt(bx + dx, y, bz + dz);
-                if (block.getType() != Material.AIR && spleefBlocks.contains(block)) return block;
+    protected List<Block> spleefBlocksUnderPlayer(Player player) {
+        List<Block> result = new ArrayList<>();
+        BoundingBox bb = player.getBoundingBox();
+        Vector min = bb.getMin();
+        Vector max = bb.getMax();
+        if (min.getBlockY() < deathLevel) return result;
+        int y = spleefLevels.get(0);
+        for (int i : spleefLevels) {
+            if (i > y && i <= min.getBlockY()) y = i;
+        }
+        for (int x = min.getBlockX(); x <= max.getBlockX(); x += 1) {
+            for (int z = min.getBlockZ(); z <= max.getBlockZ(); z += 1) {
+                Block block = world.getBlockAt(x, y, z);
+                if (!block.isEmpty() && spleefBlocks.contains(block)) {
+                    result.add(block);
+                }
             }
         }
-        return null;
+        return result;
     }
 
     protected Location dealSpawnLocation() {
@@ -370,7 +391,8 @@ public final class SpleefGame {
 
     protected void showCredits(Player player) {
         if (credits == null || credits.isEmpty()) return;
-        player.sendMessage(Component.text("Built by " + String.join(" ", credits), NamedTextColor.AQUA));
+        player.showTitle(Title.title(Component.empty(),
+                                     Component.text("Built by " + String.join(" ", credits), NamedTextColor.GREEN)));
     }
 
     private void tick() {
@@ -414,6 +436,14 @@ public final class SpleefGame {
 
     public List<Player> getPresentPlayers() {
         return world.getPlayers();
+    }
+
+    public List<SpleefPlayer> getAlivePlayers() {
+        List<SpleefPlayer> result = new ArrayList<>();
+        for (SpleefPlayer it : spleefPlayers.values()) {
+            if (it.getLives() > 0) result.add(it);
+        }
+        return result;
     }
 
     protected void changeState(State newState) {
@@ -529,38 +559,41 @@ public final class SpleefGame {
     protected State tickCountdown(long ticks) {
         if (ticks > state.seconds * 20) return State.SPLEEF;
         if (ticks % 20 == 0) {
-            long timeLeft = state.seconds - ticks / 20;
-            if (timeLeft == 0) {
+            secondsLeft = state.seconds - ticks / 20;
+            if (secondsLeft == 0) {
+                Component message = Component.text("RUN!", NamedTextColor.GREEN, TextDecoration.BOLD, TextDecoration.ITALIC);
                 for (Player player : getPresentPlayers()) {
-                    player.sendMessage(Component.text("RUN!", NamedTextColor.GREEN, TextDecoration.BOLD));
-                    player.showTitle(Title.title(Component.empty(),
-                                                 Component.text("RUN", NamedTextColor.GREEN, TextDecoration.BOLD)));
+                    player.sendMessage(message);
+                    player.showTitle(Title.title(Component.empty(), message));
                     player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 1f, 1f);
                 }
-            } else {
+            } else if (secondsLeft <= 10) {
                 for (Player player : getPresentPlayers()) {
-                    player.sendMessage(Component.text("Countdown: " + timeLeft, NamedTextColor.GREEN));
-                    player.showTitle(Title.title(Component.text(timeLeft, NamedTextColor.GREEN),
+                    player.showTitle(Title.title(Component.text(secondsLeft, NamedTextColor.GREEN),
                                                  Component.text("Round " + round, NamedTextColor.GREEN)));
-                    if (timeLeft >= 0L && timeLeft <= 24L) {
-                        player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int) (24L - timeLeft)));
+                    if (secondsLeft >= 0L && secondsLeft <= 24L) {
+                        player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int) (24L - secondsLeft)));
                     }
+                }
+            } else if (secondsLeft == 20) {
+                for (Player player : getPresentPlayers()) {
+                    showCredits(player);
                 }
             }
         }
         return null;
     }
 
+    /**
+     * Never ends!
+     */
     protected State tickSpleef(long ticks) {
-        if (ticks > state.seconds * 20) return State.COUNTDOWN;
-        long ticksLeft = state.seconds * 20 - ticks;
-        long secondsLeft = ticksLeft / 20;
         if (!allowBlockBreaking && ticks > 20 * 5) {
             allowBlockBreaking = true;
+            Component message = Component.text("SPLEEF!", NamedTextColor.GREEN, TextDecoration.BOLD, TextDecoration.ITALIC);
             for (Player player : getPresentPlayers()) {
-                player.sendMessage(Component.text("SPLEEF!", NamedTextColor.GREEN, TextDecoration.BOLD));
-                player.showTitle(Title.title(Component.empty(),
-                                             Component.text("SPLEEF", NamedTextColor.GREEN, TextDecoration.BOLD)));
+                player.sendMessage(message);
+                player.showTitle(Title.title(Component.empty(), message));
                 player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
             }
         }
@@ -582,8 +615,10 @@ public final class SpleefGame {
             if (survivorCount <= 0) return State.END;
             return State.COUNTDOWN;
         }
+        long seconds = (ticks - 1) / 20L + 1L;
+        secondsLeft = plugin.save.suddenDeathTime - seconds;
         if (!suddenDeathActive) {
-            if (secondsLeft <= SUDDEN_DEATH_TIME) {
+            if (secondsLeft <= 0) {
                 suddenDeathActive = true;
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     player.showTitle(Title.title(Component.empty(),
@@ -596,8 +631,7 @@ public final class SpleefGame {
         } else {
             for (Player player: getPresentPlayers()) {
                 if (getSpleefPlayer(player).isPlayer()) {
-                    Block block = spleefBlockUnderPlayer(player);
-                    if (block != null) {
+                    for (Block block : spleefBlocksUnderPlayer(player)) {
                         Integer blockTicks = suddenDeathTicks.get(block);
                         if (blockTicks == null) {
                             blockTicks = 1;
@@ -654,29 +688,8 @@ public final class SpleefGame {
 
     protected void tickSpleefPlayer(SpleefPlayer sp) {
         Player player = sp.getPlayer();
-        if (player.getLocation().getBlockY() < spleefLevel) {
-            sp.setSpectator();
-            sp.setDied(true);
-            sp.setLives(sp.getLives() - 1);
-            if (sp.getLives() <= 0) {
-                sp.setSpectator();
-            }
-            player.setGameMode(GameMode.SPECTATOR);
-            player.getWorld().strikeLightningEffect(player.getLocation());
-            info(player.getName() + " lost a life: " + sp.getLives());
-            for (Player other : getPresentPlayers()) {
-                if (sp.getLives() > 0) {
-                    Component message = Component.text(player.getName() + " got spleef'd and lost a life",
-                                                       NamedTextColor.RED);
-                    other.showTitle(Title.title(Component.empty(), message));
-                    other.sendMessage(message);
-                } else {
-                    Component message = Component.text(player.getName() + " got spleef'd and is out of the game",
-                                                       NamedTextColor.RED);
-                    other.showTitle(Title.title(Component.empty(), message));
-                    other.sendMessage(message);
-                }
-            }
+        if (player.getLocation().getBlockY() < deathLevel) {
+            player.damage(1.0);
         }
     }
 
@@ -718,7 +731,8 @@ public final class SpleefGame {
         switch (state) {
         case INIT:
         case COUNTDOWN:
-            if (event.getFrom().distanceSquared(event.getTo()) > 2.0) {
+            SpleefPlayer sp = getSpleefPlayer(player);
+            if (sp.getLives() > 0 && event.getTo().distanceSquared(sp.getSpawnLocation()) >= 1.0) {
                 event.setCancelled(true);
                 Bukkit.getScheduler().runTask(plugin, () -> makeImmobile(player));
             }
@@ -758,36 +772,90 @@ public final class SpleefGame {
     }
 
     public void onBlockDamage(BlockDamageEvent event) {
-        if (state == State.SPLEEF) {
-            Block block = event.getBlock();
-            if (allowBlockBreaking && isSpleefBlock(block) && block.getType() != Material.AIR) {
-                world.spawnParticle(Particle.BLOCK_DUST,
-                                    block.getLocation().add(0.5, 0.5, 0.5),
-                                    64,
-                                    .3f, .3f, .3f,
-                                    .01f,
-                                    block.getBlockData());
-                block.setType(Material.AIR, false);
-                SpleefPlayer sp = getSpleefPlayer(event.getPlayer());
-                sp.addBlockBroken();
-                int broken = sp.getBlocksBroken();
-                if (broken > 0 && broken % 100 == 0) {
-                    ItemStack item = new ItemStack(Material.TNT);
-                    event.getPlayer().getInventory().addItem(item);
-                }
-                if (broken > 0 && broken % 200 == 0) {
-                    ItemStack item = new ItemStack(Material.CREEPER_SPAWN_EGG);
-                    event.getPlayer().getInventory().addItem(item);
-                }
-            }
-        }
         event.setCancelled(true);
+        if (state != State.SPLEEF || !allowBlockBreaking) return;
+        Player player = event.getPlayer();
+        SpleefPlayer sp = getSpleefPlayer(player);
+        if (!sp.isPlayer()) return;
+        if (player.getLocation().getBlockY() < deathLevel) return;
+        Block block = event.getBlock();
+        if (!isSpleefBlock(block) || block.isEmpty()) return;
+        world.spawnParticle(Particle.BLOCK_DUST,
+                            block.getLocation().add(0.5, 0.5, 0.5),
+                            64,
+                            .3f, .3f, .3f,
+                            .01f,
+                            block.getBlockData());
+        block.setType(Material.AIR, false);
+        sp.addBlockBroken();
+        int broken = sp.getBlocksBroken();
+        if (giveTNT && broken > 0 && broken % 100 == 0) {
+            ItemStack item = new ItemStack(Material.TNT);
+            event.getPlayer().getInventory().addItem(item);
+        }
+        if (giveCreeperEggs && broken > 0 && broken % 200 == 0) {
+            ItemStack item = new ItemStack(Material.CREEPER_SPAWN_EGG);
+            event.getPlayer().getInventory().addItem(item);
+        }
     }
 
     public void onEntityDamage(EntityDamageEvent event) {
-        event.setCancelled(true);
+        if (!(event.getEntity() instanceof Player)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (event instanceof EntityDamageByEntityEvent) {
+            if (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
+                event.setDamage(0);
+            } else {
+                event.setCancelled(true);
+            }
+            return;
+        }
+        Player player = (Player) event.getEntity();
+        SpleefPlayer sp = getSpleefPlayer(player);
         if (event.getCause() == EntityDamageEvent.DamageCause.VOID) {
-            event.getEntity().teleport(world.getSpawnLocation());
+            player.teleport(world.getSpawnLocation());
+            player.setHealth(0.0);
+        }
+        if (sp.isPlayer()) return;
+        event.setCancelled(true);
+    }
+
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+        SpleefPlayer sp = getSpleefPlayer(player);
+        if (state != State.SPLEEF) {
+            player.setHealth(20.0);
+            player.setFoodLevel(20);
+            player.setSaturation(20.0f);
+            player.teleport(sp.getSpawnLocation());
+            return;
+        }
+        sp.setSpectator();
+        sp.setDied(true);
+        sp.setLives(sp.getLives() - 1);
+        if (sp.getLives() <= 0) {
+            sp.setSpectator();
+        }
+        player.setGameMode(GameMode.SPECTATOR);
+        player.setHealth(20.0);
+        player.setFoodLevel(20);
+        player.setSaturation(20.0f);
+        player.getWorld().strikeLightningEffect(player.getLocation());
+        info(player.getName() + " lost a life: " + sp.getLives());
+        for (Player other : getPresentPlayers()) {
+            if (sp.getLives() > 0) {
+                Component message = Component.text(player.getName() + " got spleef'd and lost a life",
+                                                   NamedTextColor.RED);
+                other.showTitle(Title.title(Component.empty(), message));
+                other.sendMessage(message);
+            } else {
+                Component message = Component.text(player.getName() + " got spleef'd and is out of the game",
+                                                   NamedTextColor.RED);
+                other.showTitle(Title.title(Component.empty(), message));
+                other.sendMessage(message);
+            }
         }
     }
 
@@ -808,12 +876,12 @@ public final class SpleefGame {
     public void onEntityExplode(EntityExplodeEvent event) {
         event.setCancelled(true);
         if (state != State.SPLEEF || !allowBlockBreaking) return;
-        for (Block block: event.blockList()) {
-            if (block.getType() != Material.AIR
-                && spleefBlocks.contains(block)) {
+        for (Block block : event.blockList()) {
+            if (!block.isEmpty() && spleefBlocks.contains(block)) {
                 block.setType(Material.AIR, false);
             }
         }
+        event.blockList().clear();
         Location loc = event.getEntity().getLocation();
         loc.getWorld().spawnParticle(Particle.EXPLOSION_HUGE, loc, 1, 0.1f, 0.1f, 0.1f, 0.1f);
         loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.0f);
@@ -825,25 +893,41 @@ public final class SpleefGame {
 
     protected void onPlayerSidebar(Player player, List<Component> lines) {
         SpleefPlayer sp = getSpleefPlayer(player);
+        if (state == State.COUNTDOWN && secondsLeft > 0) {
+            lines.add(Component.text("Countdown ", NamedTextColor.GRAY)
+                      .append(Component.text(secondsLeft, NamedTextColor.WHITE)));
+        }
+        if (state == State.SPLEEF) {
+            if (suddenDeathActive) {
+                lines.add(Component.text("Sudden Death!", NamedTextColor.RED));
+            } else {
+                lines.add(Component.text("Time ", NamedTextColor.GRAY)
+                          .append(Component.text(secondsLeft, NamedTextColor.WHITE)));
+            }
+        }
         if (sp.isPlayed()) {
             if (sp.getLives() > 0) {
                 lines.add(Component.text("Your Lives ", NamedTextColor.GRAY)
-                          .append(Component.text(sp.getLives(), NamedTextColor.AQUA)));
+                          .append(Component.text(sp.getLives(), NamedTextColor.WHITE)));
             } else {
                 lines.add(Component.text("Game Over", NamedTextColor.RED));
             }
             lines.add(Component.text("Blocks Broken ", NamedTextColor.GRAY)
-                      .append(Component.text(sp.getBlocksBroken(), NamedTextColor.AQUA)));
+                      .append(Component.text(sp.getBlocksBroken(), NamedTextColor.WHITE)));
         }
-        if (suddenDeath) {
-            lines.add(Component.text("Sudden Death!", NamedTextColor.RED));
-        }
-        for (SpleefPlayer it : spleefPlayers.values()) {
+        List<SpleefPlayer> highscore = getAlivePlayers();
+        Collections.sort(highscore, (a, b) -> Integer.compare(b.lives, a.lives));
+        for (SpleefPlayer it : highscore) {
             if (!it.isPlayed() || it.getLives() == 0) continue;
             Player itPlayer = it.getPlayer();
             if (itPlayer == null) continue;
-            lines.add(Component.text(Unicode.HEART.string + it.getLives() + " ", NamedTextColor.RED)
-                      .append(itPlayer.displayName()));
+            if (it.isPlayer()) {
+                lines.add(Component.text(Unicode.HEART.string + it.getLives() + " ", NamedTextColor.RED)
+                          .append(itPlayer.displayName()));
+            } else {
+                lines.add(Component.text(Unicode.HEART.string + it.getLives() + " ", NamedTextColor.RED)
+                          .append(itPlayer.displayName()));
+            }
         }
     }
 }

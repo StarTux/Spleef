@@ -15,6 +15,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -68,6 +69,11 @@ public final class EventListener implements Listener {
     @EventHandler
     public void onEntityDamage(EntityDamageEvent event) {
         plugin.applyGame(event.getEntity().getWorld(), game -> game.onEntityDamage(event));
+    }
+
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        plugin.applyGame(event.getEntity().getWorld(), game -> game.onPlayerDeath(event));
     }
 
     @EventHandler(ignoreCancelled = true)

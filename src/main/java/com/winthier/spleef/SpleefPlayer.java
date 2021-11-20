@@ -32,11 +32,14 @@ public final class SpleefPlayer {
 
     public Location getSpawnLocation() {
         if (spawnLocation == null) {
-            spawnLocation = game.dealSpawnLocation();
+            spawnLocation = game.world.getSpawnLocation();
         }
         return spawnLocation;
     }
 
+    /**
+     * isAlive() check.
+     */
     public boolean isPlayer() {
         return type == Type.PLAYER;
     }
