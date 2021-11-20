@@ -10,7 +10,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class SpleefPlugin extends JavaPlugin {
-    protected static final List<String> WINNER_TITLES = List.of("Speefer",
+    protected static final List<String> WINNER_TITLES = List.of("Spleefer",
                                                                 "ShovelKnight");
     protected final EventListener eventListener = new EventListener(this);
     protected final List<SpleefGame> spleefGameList = new ArrayList<>();
