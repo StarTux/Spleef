@@ -76,7 +76,7 @@ public final class SpleefGame {
     // Config
     @Setter protected boolean debug = false;
     protected boolean solo = false;
-    protected int lives = 5;
+    protected int lives = 3;
     // World
     protected final Set<Material> spleefMats = EnumSet.noneOf(Material.class);
     protected final Set<Block> spleefBlocks = new HashSet<>();
@@ -925,7 +925,7 @@ public final class SpleefGame {
                 lines.add(Component.text(Unicode.HEART.string + it.getLives() + " ", NamedTextColor.RED)
                           .append(itPlayer.displayName()));
             } else {
-                lines.add(Component.text(Unicode.HEART.string + it.getLives() + " ", NamedTextColor.RED)
+                lines.add(Component.text(Unicode.HEART.string + it.getLives() + " ", NamedTextColor.DARK_GRAY)
                           .append(itPlayer.displayName()));
             }
         }
