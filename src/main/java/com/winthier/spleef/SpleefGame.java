@@ -1,6 +1,8 @@
 package com.winthier.spleef;
 
 import com.cavetale.core.font.Unicode;
+import com.cavetale.mytems.Mytems;
+import com.cavetale.mytems.item.WardrobeItem;
 import com.winthier.spawn.Spawn;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -107,7 +109,6 @@ public final class SpleefGame {
     protected boolean hasWinner = false;
     protected String winnerName = "";
     protected int round = 0;
-    protected boolean shovelsGiven = false;
     protected boolean roundShouldEnd = false;
     protected int roundShouldEndTicks = 0;
     protected int creeperTimer = 0;
@@ -139,10 +140,11 @@ public final class SpleefGame {
     protected void disable() {
         task.cancel();
         for (Player player : getPresentPlayers()) {
-            player.getInventory().clear();
+            clearInventory(player);
             player.setHealth(20.0);
             player.setFoodLevel(20);
             player.setSaturation(20.0f);
+            player.setFireTicks(0);
             player.setGameMode(GameMode.ADVENTURE);
             Spawn.warp(player);
         }
@@ -159,7 +161,6 @@ public final class SpleefGame {
         sp.setPlayer();
         sp.setSpawnLocation(dealSpawnLocation());
         sp.setLives(lives);
-        player.getInventory().clear();
         player.setGameMode(GameMode.SURVIVAL);
         player.setHealth(20.0);
         player.setFoodLevel(20);
@@ -482,7 +483,9 @@ public final class SpleefGame {
                 if (sp.getLives() > 0) {
                     sp.setPlayer();
                     sp.setPlayed(true);
+                    clearInventory(player);
                     player.setGameMode(GameMode.SURVIVAL);
+                    player.setFireTicks(0);
                     player.setHealth(20.0);
                     player.setFoodLevel(20);
                     player.setSaturation(20.0f);
@@ -512,18 +515,18 @@ public final class SpleefGame {
             for (Player player : getPresentPlayers()) {
                 if (getSpleefPlayer(player).isPlayer()) {
                     makeMobile(player);
-                    if (!shovelsGiven) {
-                        player.getInventory().clear();
+                    if (!player.getInventory().contains(Material.NETHERITE_PICKAXE)) {
                         ItemStack pickaxe = new ItemStack(Material.NETHERITE_PICKAXE);
                         pickaxe.addEnchantment(Enchantment.DIG_SPEED, 5);
                         player.getInventory().addItem(pickaxe);
+                    }
+                    if (!player.getInventory().contains(Material.NETHERITE_SHOVEL)) {
                         ItemStack shovel = new ItemStack(Material.NETHERITE_SHOVEL);
                         shovel.addEnchantment(Enchantment.DIG_SPEED, 5);
                         player.getInventory().addItem(shovel);
                     }
                 }
             }
-            shovelsGiven = true;
             roundShouldEnd = false;
             roundShouldEndTicks = 0;
             suddenDeathTicks.clear();
@@ -971,6 +974,17 @@ public final class SpleefGame {
                 lines.add(Component.text(Unicode.HEART.string + it.getLives() + " ", NamedTextColor.DARK_GRAY)
                           .append(itPlayer.displayName()));
             }
+        }
+    }
+
+    public static void clearInventory(Player player) {
+        for (int i = 0; i < player.getInventory().getSize(); i += 1) {
+            ItemStack item = player.getInventory().getItem(i);
+            Mytems mytems = Mytems.forItem(item);
+            if (mytems != null && mytems.getMytem() instanceof WardrobeItem) {
+                continue;
+            }
+            player.getInventory().clear(i);
         }
     }
 }
