@@ -490,6 +490,10 @@ public final class SpleefGame {
                     player.setFoodLevel(20);
                     player.setSaturation(20.0f);
                     makeImmobile(sp.getPlayer());
+                    for (Player other : Bukkit.getOnlinePlayers()) {
+                        other.hidePlayer(plugin, player);
+                        other.showPlayer(plugin, player);
+                    }
                 }
             }
             int playerCount = 0;
