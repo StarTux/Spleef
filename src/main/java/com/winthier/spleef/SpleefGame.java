@@ -731,7 +731,7 @@ public final class SpleefGame {
     protected void tickSpleefPlayer(SpleefPlayer sp) {
         Player player = sp.getPlayer();
         if (player.getLocation().getBlockY() < deathLevel) {
-            player.damage(2.0);
+            player.damage(4.0);
         }
     }
 
@@ -884,7 +884,6 @@ public final class SpleefGame {
         player.setHealth(20.0);
         player.setFoodLevel(20);
         player.setSaturation(20.0f);
-        player.getWorld().strikeLightningEffect(player.getLocation()).setSilent(true);
         event.setKeepInventory(true);
         event.getDrops().clear();
         info(player.getName() + " lost a life: " + sp.getLives());
@@ -892,12 +891,12 @@ public final class SpleefGame {
             if (sp.getLives() > 0) {
                 Component message = Component.text(player.getName() + " got spleef'd and lost a life",
                                                    NamedTextColor.RED);
-                other.showTitle(Title.title(Component.empty(), message));
+                other.sendActionBar(message);
                 other.sendMessage(message);
             } else {
                 Component message = Component.text(player.getName() + " got spleef'd and is out of the game",
                                                    NamedTextColor.RED);
-                other.showTitle(Title.title(Component.empty(), message));
+                other.sendActionBar(message);
                 other.sendMessage(message);
             }
         }
