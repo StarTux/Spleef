@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum State {
     INIT(60),
-    COUNTDOWN(30),
+    COUNTDOWN(10),
     /**
      * Main game. Seconds are ignored. Use Save.suddenDeathTime
      * instead!

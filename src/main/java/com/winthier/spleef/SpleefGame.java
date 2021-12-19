@@ -85,6 +85,7 @@ public final class SpleefGame {
     protected final List<String> credits = new ArrayList<>();
     protected final Map<Block, Integer> suddenDeathTicks = new HashMap<>();
     protected boolean suddenDeathActive = false;
+    protected int floorRemoveCountdownTicks = 0;
     protected boolean spawnLocationsRandomized = false;
     protected int spawnLocationsIndex = 0;
     protected int deathLevel = 0;
@@ -329,23 +330,33 @@ public final class SpleefGame {
         }
     }
 
-    protected List<Block> spleefBlocksUnderPlayer(Player player) {
+    /**
+     * Get all the spleef blocks under the player's feet or on any
+     * layer above, in order to break them past sudden death.
+     */
+    protected List<Block> spleefBlocksAtPlayer(Player player) {
         List<Block> result = new ArrayList<>();
         BoundingBox bb = player.getBoundingBox();
         Vector min = bb.getMin();
         Vector max = bb.getMax();
         if (min.getBlockY() < deathLevel) return result;
-        int y = spleefLevels.get(0);
+        int ay = spleefLevels.get(0);
         for (int i : spleefLevels) {
-            if (i > y && i <= min.getBlockY()) y = i;
+            if (i > ay && i <= min.getBlockY()) ay = i;
         }
-        for (int x = min.getBlockX(); x <= max.getBlockX(); x += 1) {
-            for (int z = min.getBlockZ(); z <= max.getBlockZ(); z += 1) {
-                Block block = world.getBlockAt(x, y, z);
-                if (!block.isEmpty() && spleefBlocks.contains(block)) {
-                    result.add(block);
-                }
-            }
+        final int ax = min.getBlockX();
+        final int az = min.getBlockZ();
+        final int bx = max.getBlockX();
+        final int bz = max.getBlockZ();
+        for (Block block : spleefBlocks) {
+            if (block.isEmpty()) continue;
+            int y = block.getY();
+            if (y < ay) continue;
+            int x = block.getX();
+            if (x < ax || x > bx) continue;
+            int z = block.getZ();
+            if (z < az || z > bz) continue;
+            result.add(block);
         }
         return result;
     }
@@ -546,7 +557,7 @@ public final class SpleefGame {
                     getSpleefPlayer(player).setSpectator();
                     player.setGameMode(GameMode.SPECTATOR);
                 }
-                player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, 1f, 1f);
+                player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, 0.5f, 1f);
             }
             break;
         default: break;
@@ -559,15 +570,16 @@ public final class SpleefGame {
     }
 
     protected State tickCountdown(long ticks) {
-        if (ticks > state.seconds * 20) return State.SPLEEF;
+        int totalSeconds = round <= 1 ? 30 : 10;
+        if (ticks > totalSeconds * 20) return State.SPLEEF;
         if (ticks % 20 == 0) {
-            secondsLeft = state.seconds - ticks / 20;
+            secondsLeft = totalSeconds - ticks / 20;
             if (secondsLeft == 0) {
                 Component message = Component.text("RUN!", NamedTextColor.GREEN, TextDecoration.BOLD, TextDecoration.ITALIC);
                 for (Player player : getPresentPlayers()) {
                     player.sendMessage(message);
                     player.showTitle(Title.title(Component.empty(), message));
-                    player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 1f, 1f);
+                    player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 0.5f, 1f);
                 }
             } else if (secondsLeft <= 10) {
                 for (Player player : getPresentPlayers()) {
@@ -596,7 +608,7 @@ public final class SpleefGame {
             for (Player player : getPresentPlayers()) {
                 player.sendMessage(message);
                 player.showTitle(Title.title(Component.empty(), message));
-                player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
+                player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 2.0f);
             }
         }
         int aliveCount = 0;
@@ -618,8 +630,8 @@ public final class SpleefGame {
             return State.COUNTDOWN;
         }
         long seconds = (ticks - 1) / 20L + 1L;
-        secondsLeft = plugin.save.suddenDeathTime - seconds;
         if (!suddenDeathActive) {
+            secondsLeft = plugin.save.suddenDeathTime - seconds;
             if (secondsLeft <= 0) {
                 suddenDeathActive = true;
                 for (Player player : Bukkit.getOnlinePlayers()) {
@@ -627,25 +639,20 @@ public final class SpleefGame {
                                                  Component.text("Sudden Death", NamedTextColor.DARK_RED)));
                     player.sendMessage(Component.text("Sudden Death activated. Blocks will fade under your feet.",
                                                       NamedTextColor.DARK_RED));
-                    player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
+                    player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 1.5f);
                 }
+                floorRemoveCountdownTicks = 20 * (int) plugin.save.floorRemovalTime;
             }
         } else {
             for (Player player: getPresentPlayers()) {
                 if (getSpleefPlayer(player).isPlayer()) {
-                    for (Block block : spleefBlocksUnderPlayer(player)) {
-                        Integer blockTicks = suddenDeathTicks.get(block);
-                        if (blockTicks == null) {
-                            blockTicks = 1;
-                        } else {
-                            blockTicks += 1;
-                        }
-                        suddenDeathTicks.put(block, blockTicks);
+                    for (Block block : spleefBlocksAtPlayer(player)) {
+                        int blockTicks = suddenDeathTicks.compute(block, (b, i) -> i == null ? 1 : i + 1);
                         if (blockTicks == suddenDeathBlockTicks) {
                             block.setType(Material.AIR, false);
                         } else if (blockTicks == suddenDeathBlockTicks - 20) {
                             Location loc = block.getLocation().add(0.5, 0.5, 0.5);
-                            loc.getWorld().playSound(loc, Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f);
+                            loc.getWorld().playSound(loc, Sound.ENTITY_ITEM_BREAK, 0.5f, 1.0f);
                             loc.getWorld().spawnParticle(Particle.BLOCK_DUST,
                                                          loc,
                                                          64,
@@ -654,6 +661,36 @@ public final class SpleefGame {
                                                          block.getBlockData());
                             block.setType(Material.BARRIER, false);
                         }
+                    }
+                }
+            }
+            if (floorRemoveCountdownTicks > 0) {
+                floorRemoveCountdownTicks -= 1;
+                secondsLeft = (floorRemoveCountdownTicks - 1) / 20 + 1;
+            } else if (floorRemoveCountdownTicks == 0) {
+                floorRemoveCountdownTicks = 20 * (int) plugin.save.floorRemovalTime;
+                Map<Integer, List<Block>> floorBlocks = new HashMap<>();
+                int maxFloor = Integer.MIN_VALUE;
+                for (Block block : spleefBlocks) {
+                    if (block.isEmpty()) continue;
+                    int y = block.getY();
+                    floorBlocks.computeIfAbsent(y, yy -> new ArrayList<>()).add(block);
+                    if (y > maxFloor) maxFloor = y;
+                }
+                if (floorBlocks.size() > 1) {
+                    List<Block> floor = floorBlocks.get(maxFloor);
+                    for (Block block : floor) {
+                        block.setType(Material.AIR);
+                    }
+                    for (Player player : Bukkit.getOnlinePlayers()) {
+                        player.showTitle(Title.title(Component.empty(),
+                                                     Component.text("Layer Removed!", NamedTextColor.DARK_RED)));
+                        player.sendMessage(Component.text("Layer Removed!", NamedTextColor.DARK_RED));
+                        player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 2f);
+                    }
+                    if (floorBlocks.size() == 2) {
+                        floorRemoveCountdownTicks = -1;
+                        secondsLeft = -1;
                     }
                 }
             }
@@ -889,7 +926,7 @@ public final class SpleefGame {
         event.blockList().clear();
         Location loc = event.getEntity().getLocation();
         loc.getWorld().spawnParticle(Particle.EXPLOSION_HUGE, loc, 1, 0.1f, 0.1f, 0.1f, 0.1f);
-        loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.0f);
+        loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.2f);
     }
 
     private void info(String msg) {
@@ -905,7 +942,8 @@ public final class SpleefGame {
         if (state == State.SPLEEF) {
             if (suddenDeathActive) {
                 lines.add(Component.text("Sudden Death!", NamedTextColor.RED));
-            } else {
+            }
+            if (secondsLeft >= 0) {
                 lines.add(Component.text("Time ", NamedTextColor.GRAY)
                           .append(Component.text(secondsLeft, NamedTextColor.WHITE)));
             }

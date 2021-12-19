@@ -34,6 +34,10 @@ public final class SpleefCommand extends AbstractCommand<SpleefPlugin> {
             .description("Set sudden death timer")
             .completers(CommandArgCompleter.integer(i -> i > 0))
             .senderCaller(this::suddenDeathTime);
+        rootNode.addChild("floorremovaltime").arguments("<seconds>")
+            .description("Set floor removal timer")
+            .completers(CommandArgCompleter.integer(i -> i > 0))
+            .senderCaller(this::floorRemovalTime);
     }
 
     protected boolean start(CommandSender sender, String[] args) {
@@ -104,6 +108,20 @@ public final class SpleefCommand extends AbstractCommand<SpleefPlugin> {
             }
         }
         sender.sendMessage(Component.text("Sudden death time: " + plugin.save.suddenDeathTime, NamedTextColor.YELLOW));
+        return true;
+    }
+
+    protected boolean floorRemovalTime(CommandSender sender, String[] args) {
+        if (args.length > 1) return false;
+        if (args.length >= 1) {
+            try {
+                plugin.save.floorRemovalTime = Long.parseLong(args[0]);
+                plugin.save();
+            } catch (IllegalArgumentException iae) {
+                throw new CommandWarn("Invalid value: " + args[0]);
+            }
+        }
+        sender.sendMessage(Component.text("Floor removal time: " + plugin.save.floorRemovalTime, NamedTextColor.YELLOW));
         return true;
     }
 }
