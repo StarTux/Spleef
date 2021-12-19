@@ -892,12 +892,10 @@ public final class SpleefGame {
                 Component message = Component.text(player.getName() + " got spleef'd and lost a life",
                                                    NamedTextColor.RED);
                 other.sendActionBar(message);
-                other.sendMessage(message);
             } else {
                 Component message = Component.text(player.getName() + " got spleef'd and is out of the game",
                                                    NamedTextColor.RED);
                 other.sendActionBar(message);
-                other.sendMessage(message);
             }
         }
         Bukkit.getScheduler().runTask(plugin, () -> player.teleport(world.getSpawnLocation()));
