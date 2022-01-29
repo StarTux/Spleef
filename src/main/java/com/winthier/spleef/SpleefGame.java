@@ -47,7 +47,9 @@ import org.bukkit.block.Sign;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
@@ -102,7 +104,7 @@ public final class SpleefGame {
     protected double creeperSpeedMultiplier = 1.0;
     protected boolean giveTNT = true;
     protected boolean giveCreeperEggs = true;
-    protected boolean placeCreeperSnowBlocks = false;
+    protected boolean placeCreeperSnowBlocks = true;
     // State
     protected State state = State.INIT;
     protected long stateTicks = 0;
@@ -421,17 +423,19 @@ public final class SpleefGame {
         long ticks = stateTicks++;
         State nextState = tickState(state, ticks);
         if (nextState != null && nextState != state) changeState(nextState);
-        for (Entity e: world.getEntities()) {
-            if (placeCreeperSnowBlocks && e instanceof Creeper) {
+        for (Entity e : world.getEntities()) {
+            if (placeCreeperSnowBlocks && (e.getType() == EntityType.CREEPER || e.getType() == EntityType.SKELETON)) {
                 Block b = e.getLocation().getBlock().getRelative(0, -1, 0);
-                if (b.getType() == Material.AIR && spleefBlocks.contains(b)) {
+                if (b.isEmpty() && spleefBlocks.contains(b)) {
                     b.setType(Material.SNOW_BLOCK, false);
+                    suddenDeathTicks.put(b, suddenDeathBlockTicks - 1);
                 }
                 List<BlockFace> nbors = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST);
                 for (BlockFace face: nbors) {
                     Block b2 = b.getRelative(face);
-                    if (b2.getType() == Material.AIR && spleefBlocks.contains(b2)) {
+                    if (b2.isEmpty() && spleefBlocks.contains(b2)) {
                         b2.setType(Material.SNOW_BLOCK, false);
+                        suddenDeathTicks.put(b, suddenDeathBlockTicks - 1);
                     }
                 }
             }
@@ -468,6 +472,7 @@ public final class SpleefGame {
             switch (e.getType()) {
             case CREEPER:
             case PRIMED_TNT:
+            case SKELETON:
                 e.remove();
             default:
                 break;
@@ -521,13 +526,18 @@ public final class SpleefGame {
                     makeMobile(player);
                     if (!player.getInventory().contains(Material.NETHERITE_PICKAXE)) {
                         ItemStack pickaxe = new ItemStack(Material.NETHERITE_PICKAXE);
-                        pickaxe.addEnchantment(Enchantment.DIG_SPEED, 5);
+                        pickaxe.addUnsafeEnchantment(Enchantment.DIG_SPEED, 9);
                         player.getInventory().addItem(pickaxe);
                     }
                     if (!player.getInventory().contains(Material.NETHERITE_SHOVEL)) {
                         ItemStack shovel = new ItemStack(Material.NETHERITE_SHOVEL);
-                        shovel.addEnchantment(Enchantment.DIG_SPEED, 5);
+                        shovel.addUnsafeEnchantment(Enchantment.DIG_SPEED, 9);
                         player.getInventory().addItem(shovel);
+                    }
+                    if (!player.getInventory().contains(Material.NETHERITE_AXE)) {
+                        ItemStack axe = new ItemStack(Material.NETHERITE_AXE);
+                        axe.addUnsafeEnchantment(Enchantment.DIG_SPEED, 9);
+                        player.getInventory().addItem(axe);
                     }
                 }
             }
@@ -713,17 +723,25 @@ public final class SpleefGame {
                     }
                 }
                 if (!blockList.isEmpty()) {
-                    Block creeperBlock = blockList.get(random.nextInt(blockList.size()));
-                    Creeper creeper = creeperBlock.getWorld().spawn(creeperBlock.getLocation().add(0.5, 1.0, 0.5), Creeper.class);
-                    if (creeper != null) {
-                        creeper.setPersistent(false);
-                        if (random.nextDouble() < creeperPowerChance) {
-                            creeper.setPowered(true);
-                        }
-                        if (random.nextDouble() < creeperSpeedChance) {
-                            creeper.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
-                                .addModifier(new AttributeModifier("Spleef", (float) creeperSpeedMultiplier,
-                                                                   AttributeModifier.Operation.MULTIPLY_SCALAR_1));
+                    if (random.nextDouble() < 0.15) {
+                        Block skellyBlock = blockList.get(random.nextInt(blockList.size()));
+                        Skeleton skeleton = skellyBlock.getWorld().spawn(skellyBlock.getLocation().add(0.5, 1.0, 0.5), Skeleton.class, s -> {
+                                s.setPersistent(false);
+                                s.setShouldBurnInDay(false);
+                            });
+                    } else {
+                        Block creeperBlock = blockList.get(random.nextInt(blockList.size()));
+                        Creeper creeper = creeperBlock.getWorld().spawn(creeperBlock.getLocation().add(0.5, 1.0, 0.5), Creeper.class);
+                        if (creeper != null) {
+                            creeper.setPersistent(false);
+                            if (random.nextDouble() < creeperPowerChance) {
+                                creeper.setPowered(true);
+                            }
+                            if (random.nextDouble() < creeperSpeedChance) {
+                                creeper.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
+                                    .addModifier(new AttributeModifier("Spleef", (float) creeperSpeedMultiplier,
+                                                                       AttributeModifier.Operation.MULTIPLY_SCALAR_1));
+                            }
                         }
                     }
                 }
@@ -853,6 +871,8 @@ public final class SpleefGame {
         if (event instanceof EntityDamageByEntityEvent) {
             if (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
                 event.setDamage(0);
+            } else if (event.getCause() == EntityDamageEvent.DamageCause.PROJECTILE) {
+                event.setDamage(0);
             } else {
                 event.setCancelled(true);
             }
@@ -888,6 +908,7 @@ public final class SpleefGame {
         player.setHealth(20.0);
         player.setFoodLevel(20);
         player.setSaturation(20.0f);
+        player.getWorld().spigot().strikeLightningEffect(player.getLocation(), true);
         event.setKeepInventory(true);
         event.getDrops().clear();
         info(player.getName() + " lost a life: " + sp.getLives());
