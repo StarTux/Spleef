@@ -908,7 +908,6 @@ public final class SpleefGame {
         player.setHealth(20.0);
         player.setFoodLevel(20);
         player.setSaturation(20.0f);
-        player.getWorld().spigot().strikeLightningEffect(player.getLocation(), true);
         event.setKeepInventory(true);
         event.getDrops().clear();
         info(player.getName() + " lost a life: " + sp.getLives());
