@@ -705,6 +705,7 @@ public final class SpleefGame {
                 }
                 if (floorBlocks.size() > 1) {
                     List<Block> floor = floorBlocks.get(maxFloor);
+                    maxFloor -= 1;
                     for (Block block : floor) {
                         block.setType(Material.AIR);
                     }
@@ -861,7 +862,7 @@ public final class SpleefGame {
                             block.getBlockData());
         block.setType(Material.AIR, false);
         sp.addBlockBroken();
-        if (plugin.save.event) {
+        if (plugin.save.event && suddenDeathTicks.getOrDefault(block, 0) == 0) {
             plugin.save.addScore(player.getUniqueId(), 1);
             scoreGiven = true;
         }
