@@ -163,7 +163,7 @@ public final class SpleefCommand extends AbstractCommand<SpleefPlugin> {
     private void scoreReward(CommandSender sender) {
         int count = Highscore.reward(plugin.save.scores,
                                      "spleef",
-                                     TrophyCategory.SHOVEL,
+                                     TrophyCategory.SPLEEF,
                                      plugin.TITLE,
                                      hi -> ("You broke "
                                             + hi.score + " block" + (hi.score == 1 ? "" : "s")
