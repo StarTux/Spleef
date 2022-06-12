@@ -2,15 +2,19 @@ package com.winthier.spleef;
 
 import com.cavetale.core.command.AbstractCommand;
 import com.cavetale.core.command.CommandArgCompleter;
+import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
+import com.cavetale.fam.trophy.Highscore;
+import com.cavetale.mytems.item.trophy.TrophyCategory;
+import com.winthier.playercache.PlayerCache;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 public final class SpleefCommand extends AbstractCommand<SpleefPlugin> {
     protected SpleefCommand(final SpleefPlugin plugin) {
@@ -38,6 +42,19 @@ public final class SpleefCommand extends AbstractCommand<SpleefPlugin> {
             .description("Set floor removal timer")
             .completers(CommandArgCompleter.integer(i -> i > 0))
             .senderCaller(this::floorRemovalTime);
+        CommandNode scoreNode = rootNode.addChild("score")
+            .description("Score commands");
+        scoreNode.addChild("add")
+            .description("Manipulate score")
+            .completers(PlayerCache.NAME_COMPLETER,
+                        CommandArgCompleter.integer(i -> i != 0))
+            .senderCaller(this::scoreAdd);
+        scoreNode.addChild("clear").denyTabCompletion()
+            .description("Clear all scores")
+            .senderCaller(this::scoreClear);
+        scoreNode.addChild("reward").denyTabCompletion()
+            .description("Reward players")
+            .senderCaller(this::scoreReward);
     }
 
     protected boolean start(CommandSender sender, String[] args) {
@@ -73,7 +90,7 @@ public final class SpleefCommand extends AbstractCommand<SpleefPlugin> {
             throw new CommandWarn("No games are running!");
         }
         for (SpleefGame game : List.copyOf(plugin.spleefGameList)) {
-            sender.sendMessage(Component.text("Stopping game: " + game.getWorldName()));
+            sender.sendMessage(text("Stopping game: " + game.getWorldName()));
             game.stop();
         }
         return true;
@@ -89,11 +106,11 @@ public final class SpleefCommand extends AbstractCommand<SpleefPlugin> {
                 throw new CommandWarn("Invalid value: " + args[0]);
             }
             sender.sendMessage(plugin.save.event
-                               ? Component.text("Event mode enabled", NamedTextColor.GREEN)
-                               : Component.text("Event mode disabled", NamedTextColor.RED));
+                               ? text("Event mode enabled", GREEN)
+                               : text("Event mode disabled", RED));
             return true;
         }
-        sender.sendMessage(Component.text("Event mode: " + plugin.save.event, NamedTextColor.YELLOW));
+        sender.sendMessage(text("Event mode: " + plugin.save.event, YELLOW));
         return true;
     }
 
@@ -107,7 +124,7 @@ public final class SpleefCommand extends AbstractCommand<SpleefPlugin> {
                 throw new CommandWarn("Invalid value: " + args[0]);
             }
         }
-        sender.sendMessage(Component.text("Sudden death time: " + plugin.save.suddenDeathTime, NamedTextColor.YELLOW));
+        sender.sendMessage(text("Sudden death time: " + plugin.save.suddenDeathTime, YELLOW));
         return true;
     }
 
@@ -121,7 +138,36 @@ public final class SpleefCommand extends AbstractCommand<SpleefPlugin> {
                 throw new CommandWarn("Invalid value: " + args[0]);
             }
         }
-        sender.sendMessage(Component.text("Floor removal time: " + plugin.save.floorRemovalTime, NamedTextColor.YELLOW));
+        sender.sendMessage(text("Floor removal time: " + plugin.save.floorRemovalTime, YELLOW));
         return true;
+    }
+
+    private boolean scoreClear(CommandSender sender, String[] args) {
+        if (args.length != 0) return false;
+        plugin.save.scores.clear();
+        plugin.computeHighscore();
+        sender.sendMessage(text("All scores cleared", AQUA));
+        return true;
+    }
+
+    private boolean scoreAdd(CommandSender sender, String[] args) {
+        if (args.length != 2) return false;
+        PlayerCache target = PlayerCache.require(args[0]);
+        int value = CommandArgCompleter.requireInt(args[1], i -> i != 0);
+        plugin.save.addScore(target.uuid, value);
+        plugin.computeHighscore();
+        sender.sendMessage(text("Score of " + target.name + " manipulated by " + value, AQUA));
+        return true;
+    }
+
+    private void scoreReward(CommandSender sender) {
+        int count = Highscore.reward(plugin.save.scores,
+                                     "spleef",
+                                     TrophyCategory.SHOVEL,
+                                     plugin.TITLE,
+                                     hi -> ("You broke "
+                                            + hi.score + " block" + (hi.score == 1 ? "" : "s")
+                                            + " while playing Spleef"));
+        sender.sendMessage(text("Rewarded " + count + " players", AQUA));
     }
 }

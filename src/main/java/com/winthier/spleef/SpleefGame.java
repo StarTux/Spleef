@@ -71,6 +71,9 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
+// TODO: Creepers keep top layer alive
+// TODO: Layer removal above players can go
+// TODO: Remove creeper/skelly snow blocks faster
 @Getter @RequiredArgsConstructor
 public final class SpleefGame {
     static final long TIME_BEFORE_SPLEEF = 5;
@@ -118,6 +121,7 @@ public final class SpleefGame {
     protected final Map<UUID, SpleefPlayer> spleefPlayers = new HashMap<>();
     protected long secondsLeft;
     protected BukkitTask task;
+    private boolean scoreGiven = false;
 
     protected void enable() {
         world.setPVP(false);
@@ -168,6 +172,9 @@ public final class SpleefGame {
         player.setFoodLevel(20);
         player.setSaturation(20.0f);
         makeImmobile(player);
+        if (plugin.save.event) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ml add " + sp.getName());
+        }
     }
 
     public void addSpectator(Player player) {
@@ -420,6 +427,10 @@ public final class SpleefGame {
             stop();
             return;
         }
+        if (scoreGiven) {
+            scoreGiven = false;
+            plugin.computeHighscore();
+        }
         long ticks = stateTicks++;
         State nextState = tickState(state, ticks);
         if (nextState != null && nextState != state) changeState(nextState);
@@ -551,9 +562,6 @@ public final class SpleefGame {
             int survivorCount = 0;
             SpleefPlayer survivor = null;
             for (SpleefPlayer sp : spleefPlayers.values()) {
-                if (sp.getBlocksBroken() > 0 && plugin.save.event) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ml add " + sp.getName());
-                }
                 if (sp.getLives() > 0) {
                     survivorCount += 1;
                     survivor = sp;
@@ -852,6 +860,10 @@ public final class SpleefGame {
                             block.getBlockData());
         block.setType(Material.AIR, false);
         sp.addBlockBroken();
+        if (plugin.save.event) {
+            plugin.save.addScore(player.getUniqueId(), 1);
+            scoreGiven = true;
+        }
         int broken = sp.getBlocksBroken();
         if (giveTNT && broken > 0 && broken % 100 == 0) {
             ItemStack item = new ItemStack(Material.TNT);

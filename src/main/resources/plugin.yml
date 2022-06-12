@@ -2,13 +2,13 @@ main: com.winthier.spleef.SpleefPlugin
 name: Spleef
 
 version: 0.1
-api-version: 1.17
+api-version: 1.18
 
 description: The popular Spleef mini game
 authors: [StarTux]
 website: https://cavetale.com
 
-depend: [Core, Mytems, Spawn, Sidebar]
+depend: [Core, PlayerCache, Mytems, Spawn, Sidebar, Fam]
 softdepend: []
 
 commands:
