@@ -71,9 +71,6 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
-// TODO: Creepers keep top layer alive
-// TODO: Layer removal above players can go
-// TODO: Remove creeper/skelly snow blocks faster
 @Getter @RequiredArgsConstructor
 public final class SpleefGame {
     static final long TIME_BEFORE_SPLEEF = 5;
@@ -122,6 +119,7 @@ public final class SpleefGame {
     protected long secondsLeft;
     protected BukkitTask task;
     private boolean scoreGiven = false;
+    private int maxFloor;
 
     protected void enable() {
         world.setPVP(false);
@@ -293,6 +291,7 @@ public final class SpleefGame {
             Block block = blocksToSearch.remove();
             if (!isSpleefMat(block.getType())) continue;
             spleefBlocks.add(block);
+            maxFloor = Math.max(maxFloor, block.getY());
             final BlockFace[] faces = {
                 BlockFace.NORTH,
                 BlockFace.EAST,
@@ -435,18 +434,20 @@ public final class SpleefGame {
         State nextState = tickState(state, ticks);
         if (nextState != null && nextState != state) changeState(nextState);
         for (Entity e : world.getEntities()) {
-            if (placeCreeperSnowBlocks && (e.getType() == EntityType.CREEPER || e.getType() == EntityType.SKELETON)) {
+            if (placeCreeperSnowBlocks && e.getType() == EntityType.CREEPER) {
                 Block b = e.getLocation().getBlock().getRelative(0, -1, 0);
-                if (b.isEmpty() && spleefBlocks.contains(b)) {
-                    b.setType(Material.SNOW_BLOCK, false);
-                    suddenDeathTicks.put(b, suddenDeathBlockTicks - 1);
-                }
-                List<BlockFace> nbors = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST);
-                for (BlockFace face: nbors) {
-                    Block b2 = b.getRelative(face);
-                    if (b2.isEmpty() && spleefBlocks.contains(b2)) {
-                        b2.setType(Material.SNOW_BLOCK, false);
+                if (b.getY() <= maxFloor) {
+                    if (b.isEmpty() && spleefBlocks.contains(b)) {
+                        b.setType(Material.SNOW_BLOCK, false);
                         suddenDeathTicks.put(b, suddenDeathBlockTicks - 1);
+                    }
+                    List<BlockFace> nbors = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST);
+                    for (BlockFace face: nbors) {
+                        Block b2 = b.getRelative(face);
+                        if (b2.isEmpty() && spleefBlocks.contains(b2)) {
+                            b2.setType(Material.SNOW_BLOCK, false);
+                            suddenDeathTicks.put(b, suddenDeathBlockTicks - 1);
+                        }
                     }
                 }
             }
@@ -680,7 +681,7 @@ public final class SpleefGame {
                             loc.getWorld().playSound(loc, Sound.ENTITY_ITEM_BREAK, 0.5f, 1.0f);
                             loc.getWorld().spawnParticle(Particle.BLOCK_DUST,
                                                          loc,
-                                                         64,
+                                                         32,
                                                          .3f, .3f, .3f,
                                                          .01f,
                                                          block.getBlockData());
@@ -695,7 +696,7 @@ public final class SpleefGame {
             } else if (floorRemoveCountdownTicks == 0) {
                 floorRemoveCountdownTicks = 20 * (int) plugin.save.floorRemovalTime;
                 Map<Integer, List<Block>> floorBlocks = new HashMap<>();
-                int maxFloor = Integer.MIN_VALUE;
+                maxFloor = Integer.MIN_VALUE;
                 for (Block block : spleefBlocks) {
                     if (block.isEmpty()) continue;
                     int y = block.getY();
@@ -953,13 +954,28 @@ public final class SpleefGame {
 
     public void onEntityExplode(EntityExplodeEvent event) {
         event.setCancelled(true);
+        event.blockList().clear();
         if (state != State.SPLEEF || !allowBlockBreaking) return;
-        for (Block block : event.blockList()) {
-            if (!block.isEmpty() && spleefBlocks.contains(block)) {
-                block.setType(Material.AIR, false);
+        final int r = event.getEntity() instanceof Creeper creeper && creeper.isPowered()
+            ? 6
+            : 4;
+        Block center = event.getEntity().getLocation().getBlock();
+        for (int y = -r; y <= r; y += 1) {
+            for (int z = -r; z <= r; z += 1) {
+                for (int x = -r; x <= r; x += 1) {
+                    if (x * x + y * y + z * z > r * r) continue;
+                    Block block = center.getRelative(x, y, z);
+                    if (block.isEmpty() || !spleefBlocks.contains(block)) continue;
+                    world.spawnParticle(Particle.BLOCK_DUST,
+                                        block.getLocation().add(0.5, 0.5, 0.5),
+                                        8,
+                                        .3f, .3f, .3f,
+                                        .01f,
+                                        block.getBlockData());
+                    block.setType(Material.AIR, false);
+                }
             }
         }
-        event.blockList().clear();
         Location loc = event.getEntity().getLocation();
         loc.getWorld().spawnParticle(Particle.EXPLOSION_HUGE, loc, 1, 0.1f, 0.1f, 0.1f, 0.1f);
         loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.2f);
