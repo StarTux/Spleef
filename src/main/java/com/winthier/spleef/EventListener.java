@@ -1,7 +1,5 @@
 package com.winthier.spleef;
 
-import com.cavetale.fam.trophy.Highscore;
-import com.cavetale.mytems.item.trophy.TrophyCategory;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
 import com.winthier.spawn.Spawn;
@@ -104,7 +102,7 @@ public final class EventListener implements Listener {
         lines.add(plugin.TITLE);
         plugin.applyGame(event.getPlayer().getWorld(), game -> game.onPlayerSidebar(event.getPlayer(), lines));
         if (plugin.save.event) {
-            lines.addAll(Highscore.sidebar(plugin.highscore, TrophyCategory.SPLEEF));
+            lines.addAll(plugin.highscoreLines);
         }
         if (lines.isEmpty()) return;
         event.add(plugin, Priority.HIGHEST, lines);

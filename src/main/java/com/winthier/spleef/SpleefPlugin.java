@@ -2,27 +2,30 @@ package com.winthier.spleef;
 
 import com.cavetale.core.util.Json;
 import com.cavetale.fam.trophy.Highscore;
+import com.cavetale.mytems.item.trophy.TrophyCategory;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
-import net.kyori.adventure.text.Component;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 import static net.kyori.adventure.text.format.TextDecoration.*;
 
 public final class SpleefPlugin extends JavaPlugin {
     protected static final List<String> WINNER_TITLES = List.of("Spleefer",
                                                                 "ShovelKnight",
-                                                                "IronShovel");
+                                                                "IronShovel",
+                                                                "GoldenShovel");
     protected final EventListener eventListener = new EventListener(this);
     protected final List<SpleefGame> spleefGameList = new ArrayList<>();
     protected final SpleefCommand spleefCommand = new SpleefCommand(this);
     protected List<String> worlds;
     protected Save save;
     protected List<Highscore> highscore = List.of();
+    protected List<Component> highscoreLines = List.of();
     public static final Component TITLE = Component.text("Spleef!", GREEN, BOLD);
 
     @Override
@@ -75,5 +78,6 @@ public final class SpleefPlugin extends JavaPlugin {
 
     protected void computeHighscore() {
         highscore = Highscore.of(save.scores);
+        highscoreLines = Highscore.sidebar(highscore, TrophyCategory.SPLEEF);
     }
 }
