@@ -96,7 +96,7 @@ public final class SpleefGame {
     protected List<Integer> spleefLevels = new ArrayList<>();
     protected boolean allowBlockBreaking = false;
     protected int suddenDeathBlockTicks = 40;
-    protected boolean creeperSpawning = true;
+    protected boolean creeperSpawning = false;
     protected int creeperCooldown = 5;
     protected double creeperChance = 0.125;
     protected double creeperPowerChance = 0.33;
@@ -670,6 +670,7 @@ public final class SpleefGame {
                 floorRemoveCountdownTicks = 20 * (int) plugin.save.floorRemovalTime;
             }
         } else {
+            assert suddenDeathActive;
             for (Player player: getPresentPlayers()) {
                 if (getSpleefPlayer(player).isPlayer()) {
                     for (Block block : spleefBlocksAtPlayer(player)) {
@@ -715,10 +716,10 @@ public final class SpleefGame {
                         player.sendMessage(Component.text("Layer Removed!", NamedTextColor.DARK_RED));
                         player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 2f);
                     }
-                    if (floorBlocks.size() == 2) {
-                        floorRemoveCountdownTicks = -1;
-                        secondsLeft = -1;
-                    }
+                } else {
+                    secondsLeft = 0;
+                    floorRemoveCountdownTicks = -1;
+                    roundShouldEnd = true;
                 }
             }
         }
