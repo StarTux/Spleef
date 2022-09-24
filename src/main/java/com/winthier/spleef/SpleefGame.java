@@ -638,10 +638,15 @@ public final class SpleefGame {
             }
         }
         int aliveCount = 0;
+        int playingCount = 0;
         for (SpleefPlayer sp : spleefPlayers.values()) {
-            if (!sp.isPlayer()) continue;
-            tickSpleefPlayer(sp);
-            if (sp.isPlayer()) aliveCount += 1;
+            if (sp.isPlayer()) {
+                tickSpleefPlayer(sp);
+                aliveCount += 1;
+            }
+            if (sp.getLives() > 0) {
+                playingCount += 1;
+            }
         }
         if (aliveCount == 0 || (!solo && aliveCount <= 1)) roundShouldEnd = true;
         if (roundShouldEnd && roundShouldEndTicks++ >= 20 * 3) {
@@ -704,7 +709,7 @@ public final class SpleefGame {
                     floorBlocks.computeIfAbsent(y, yy -> new ArrayList<>()).add(block);
                     if (y > maxFloor) maxFloor = y;
                 }
-                if (floorBlocks.size() > 1) {
+                if (floorBlocks.size() > 1 || (floorBlocks.size() == 1 && playingCount == 2)) {
                     List<Block> floor = floorBlocks.get(maxFloor);
                     maxFloor -= 1;
                     for (Block block : floor) {
