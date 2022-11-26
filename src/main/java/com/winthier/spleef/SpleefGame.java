@@ -70,6 +70,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @Getter @RequiredArgsConstructor
 public final class SpleefGame {
@@ -874,8 +875,18 @@ public final class SpleefGame {
         }
         int broken = sp.getBlocksBroken();
         if (giveTNT && broken > 0 && broken % 100 == 0) {
-            ItemStack item = new ItemStack(Material.TNT);
-            event.getPlayer().getInventory().addItem(item);
+            if (broken == 300) {
+                sp.setLives(sp.getLives() + 1);
+                Component msg = Component.textOfChildren(Component.newline(),
+                                                         Component.text("You earned 1", LIGHT_PURPLE),
+                                                         Mytems.HEART,
+                                                         Component.newline());
+                player.sendMessage(msg);
+                player.sendActionBar(msg);
+            } else {
+                ItemStack item = new ItemStack(Material.TNT);
+                player.getInventory().addItem(item);
+            }
         }
         if (giveCreeperEggs && broken > 0 && broken % 200 == 0) {
             ItemStack item = new ItemStack(Material.CREEPER_SPAWN_EGG);
