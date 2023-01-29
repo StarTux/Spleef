@@ -578,7 +578,7 @@ public final class SpleefGame {
                     }
                     if (totalBlocksBroken > 0) {
                         for (SpleefPlayer sp : spleefPlayers.values()) {
-                            int score = (sp.getBlocksBroken() * totalPlayers) / totalBlocksBroken;
+                            int score = (sp.getBlocksBroken() * totalPlayers * 10) / totalBlocksBroken;
                             if (score > 0) plugin.save.addScore(sp.uuid, score);
                         }
                         plugin.computeHighscore();
