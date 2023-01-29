@@ -119,7 +119,6 @@ public final class SpleefGame {
     protected final Map<UUID, SpleefPlayer> spleefPlayers = new HashMap<>();
     protected long secondsLeft;
     protected BukkitTask task;
-    private boolean scoreGiven = false;
     private int maxFloor;
 
     protected void enable() {
@@ -427,10 +426,6 @@ public final class SpleefGame {
             stop();
             return;
         }
-        if (scoreGiven) {
-            scoreGiven = false;
-            plugin.computeHighscore();
-        }
         long ticks = stateTicks++;
         State nextState = tickState(state, ticks);
         if (nextState != null && nextState != state) changeState(nextState);
@@ -574,6 +569,20 @@ public final class SpleefGame {
                 winnerName = survivor.getName();
                 survivor.setWinner(true);
                 if (plugin.save.event) {
+                    int totalBlocksBroken = 0;
+                    int totalPlayers = 0;
+                    for (SpleefPlayer sp : spleefPlayers.values()) {
+                        if (!sp.isPlayed() || sp.getBlocksBroken() == 0) continue;
+                        totalBlocksBroken += sp.getBlocksBroken();
+                        totalPlayers += 1;
+                    }
+                    if (totalBlocksBroken > 0) {
+                        for (SpleefPlayer sp : spleefPlayers.values()) {
+                            int score = (sp.getBlocksBroken() * totalPlayers) / totalBlocksBroken;
+                            if (score > 0) plugin.save.addScore(sp.uuid, score);
+                        }
+                        plugin.computeHighscore();
+                    }
                     String cmd = "titles unlockset " + winnerName + " " + String.join(" ", plugin.WINNER_TITLES);
                     info("Dispatching command: " + cmd);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
@@ -868,29 +877,27 @@ public final class SpleefGame {
                             .01f,
                             block.getBlockData());
         block.setType(Material.AIR, false);
-        sp.addBlockBroken();
-        if (plugin.save.event && suddenDeathTicks.getOrDefault(block, 0) == 0) {
-            plugin.save.addScore(player.getUniqueId(), 1);
-            scoreGiven = true;
-        }
-        int broken = sp.getBlocksBroken();
-        if (giveTNT && broken > 0 && broken % 100 == 0) {
-            if (broken == 300) {
-                sp.setLives(sp.getLives() + 1);
-                Component msg = Component.textOfChildren(Component.newline(),
-                                                         Component.text("You earned 1", LIGHT_PURPLE),
-                                                         Mytems.HEART,
-                                                         Component.newline());
-                player.sendMessage(msg);
-                player.sendActionBar(msg);
-            } else {
-                ItemStack item = new ItemStack(Material.TNT);
-                player.getInventory().addItem(item);
+        if (suddenDeathTicks.getOrDefault(block, 0) == 0) {
+            sp.addBlockBroken();
+            int broken = sp.getBlocksBroken();
+            if (giveTNT && broken > 0 && broken % 100 == 0) {
+                if (broken == 300) {
+                    sp.setLives(sp.getLives() + 1);
+                    Component msg = Component.textOfChildren(Component.newline(),
+                                                             Component.text("You earned 1", LIGHT_PURPLE),
+                                                             Mytems.HEART,
+                                                             Component.newline());
+                    player.sendMessage(msg);
+                    player.sendActionBar(msg);
+                } else {
+                    ItemStack item = new ItemStack(Material.TNT);
+                    player.getInventory().addItem(item);
+                }
             }
-        }
-        if (giveCreeperEggs && broken > 0 && broken % 200 == 0) {
-            ItemStack item = new ItemStack(Material.CREEPER_SPAWN_EGG);
-            event.getPlayer().getInventory().addItem(item);
+            if (giveCreeperEggs && broken > 0 && broken % 200 == 0) {
+                ItemStack item = new ItemStack(Material.CREEPER_SPAWN_EGG);
+                event.getPlayer().getInventory().addItem(item);
+            }
         }
     }
 
