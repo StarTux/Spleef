@@ -1,11 +1,12 @@
 package com.winthier.spleef;
 
-import com.cavetale.sidebar.PlayerSidebarEvent;
-import com.cavetale.sidebar.Priority;
+import com.cavetale.core.event.hud.PlayerHudEvent;
+import com.cavetale.core.event.hud.PlayerHudPriority;
 import com.winthier.spawn.Spawn;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -23,6 +24,9 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.spigotmc.event.player.PlayerSpawnLocationEvent;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.Component.textOfChildren;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @RequiredArgsConstructor
 public final class EventListener implements Listener {
@@ -40,6 +44,7 @@ public final class EventListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         plugin.applyGame(event.getPlayer().getWorld(), game -> game.onPlayerJoin(event));
+        plugin.spleefMaps.remindToVote(event.getPlayer());
     }
 
     @EventHandler
@@ -103,14 +108,19 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerSidebar(PlayerSidebarEvent event) {
+    public void onPlayerHud(PlayerHudEvent event) {
         List<Component> lines = new ArrayList<>();
         lines.add(plugin.TITLE);
         plugin.applyGame(event.getPlayer().getWorld(), game -> game.onPlayerSidebar(event.getPlayer(), lines));
         if (plugin.save.event) {
             lines.addAll(plugin.highscoreLines);
         }
-        if (lines.isEmpty()) return;
-        event.add(plugin, Priority.HIGHEST, lines);
+        if (!lines.isEmpty()) {
+            event.sidebar(PlayerHudPriority.HIGHEST, lines);
+        }
+        if (plugin.spleefMaps.isVoteActive()) {
+            event.bossbar(PlayerHudPriority.HIGH, textOfChildren(SpleefPlugin.TITLE, text(" /spleef vote", YELLOW)),
+                          BossBar.Color.GREEN, BossBar.Overlay.PROGRESS, plugin.spleefMaps.voteProgress());
+        }
     }
 }

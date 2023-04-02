@@ -14,11 +14,20 @@ softdepend: []
 commands:
 
   spleef:
-    aliases: [spleefadmin]
+    aliases: []
+    description: User command
+    permission: spleef.spleef
+
+  spleefadmin:
+    aliases: [spleefadm]
     description: Admin command
     permission: spleef.admin
 
 permissions:
+
+  spleef.spleef:
+    description: Use /spleef
+    default: true
 
   spleef.admin:
     description: Admin permission

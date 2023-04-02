@@ -5,11 +5,13 @@ import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 import static net.kyori.adventure.text.format.TextDecoration.*;
@@ -21,11 +23,13 @@ public final class SpleefPlugin extends JavaPlugin {
                                                                 "GoldenShovel");
     protected final EventListener eventListener = new EventListener(this);
     protected final List<SpleefGame> spleefGameList = new ArrayList<>();
+    protected final SpleefAdminCommand spleefAdminCommand = new SpleefAdminCommand(this);
     protected final SpleefCommand spleefCommand = new SpleefCommand(this);
     protected List<String> worlds;
     protected Save save;
     protected List<Highscore> highscore = List.of();
     protected List<Component> highscoreLines = List.of();
+    protected final SpleefMaps spleefMaps = new SpleefMaps(this);;
     public static final Component TITLE = Component.text("Spleef!", GREEN, BOLD);
 
     @Override
@@ -34,6 +38,7 @@ public final class SpleefPlugin extends JavaPlugin {
         loadConfiguration();
         load();
         Bukkit.getPluginManager().registerEvents(eventListener, this);
+        spleefAdminCommand.enable();
         spleefCommand.enable();
     }
 
@@ -48,6 +53,7 @@ public final class SpleefPlugin extends JavaPlugin {
 
     private void loadConfiguration() {
         worlds = getConfig().getStringList("worlds");
+        spleefMaps.load(worlds);
     }
 
     protected void load() {
@@ -73,6 +79,21 @@ public final class SpleefPlugin extends JavaPlugin {
         SpleefGame game = new SpleefGame(this, world, worldName);
         spleefGameList.add(game);
         game.enable();
+        return game;
+    }
+
+    public SpleefGame startGameWithAllPlayers(String worldName) {
+        SpleefGame game = startGame(worldName);
+        List<Player> playerList = new ArrayList<>(Bukkit.getOnlinePlayers());
+        Collections.shuffle(playerList);
+        for (Player player : playerList) {
+            if (player.hasPermission("group.streamer") && player.isPermissionSet("group.streamer")) {
+                game.addSpectator(player);
+            } else {
+                game.addPlayer(player);
+            }
+        }
+        game.changeState(State.COUNTDOWN);
         return game;
     }
 
