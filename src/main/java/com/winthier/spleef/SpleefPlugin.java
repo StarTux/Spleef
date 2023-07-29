@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -16,6 +17,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 import static net.kyori.adventure.text.format.TextDecoration.*;
 
+@Getter
 public final class SpleefPlugin extends JavaPlugin {
     protected static final List<String> WINNER_TITLES = List.of("Spleefer",
                                                                 "ShovelKnight",

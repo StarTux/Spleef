@@ -47,6 +47,9 @@ public final class SpleefMaps {
     private final Random random = new Random();
 
     public void startVote() {
+        if (maps.isEmpty()) {
+            load(plugin.getWorlds());
+        }
         voteActive = true;
         votes.clear();
         ticksLeft = maxTicks;
@@ -96,6 +99,7 @@ public final class SpleefMaps {
             player.sendMessage(textOfChildren(text("By ", GRAY), text(spleefMap.getDescription(), GREEN)));
             player.sendMessage("");
         }
+        maps.remove(spleefMap.getPath());
         plugin.startGameWithAllPlayers(spleefMap.getPath());
     }
 
