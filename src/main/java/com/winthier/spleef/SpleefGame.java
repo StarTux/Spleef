@@ -3,6 +3,9 @@ package com.winthier.spleef;
 import com.cavetale.core.font.Unicode;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.WardrobeItem;
+import com.winthier.creative.BuildWorld;
+import com.winthier.creative.file.Files;
+import com.winthier.creative.review.MapReview;
 import com.winthier.spawn.Spawn;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -21,7 +24,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -74,13 +76,16 @@ import static net.kyori.adventure.text.Component.newline;
 import static net.kyori.adventure.text.Component.textOfChildren;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 import static net.kyori.adventure.text.format.TextDecoration.*;
+import static net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText;
+import static org.bukkit.block.sign.Side.FRONT;
 
 @Getter @RequiredArgsConstructor
 public final class SpleefGame {
     static final long TIME_BEFORE_SPLEEF = 5;
     protected final SpleefPlugin plugin;
     protected final World world;
-    protected final String worldName;
+    protected final BuildWorld buildWorld;
+    protected MapReview mapReview;
     // Config
     @Setter protected boolean debug = false;
     protected boolean solo = false;
@@ -142,6 +147,7 @@ public final class SpleefGame {
         scanSpleefBlocks();
         copySpleefBlocks();
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1L, 1L);
+        mapReview = MapReview.start(world, buildWorld);
     }
 
     protected void disable() {
@@ -155,8 +161,8 @@ public final class SpleefGame {
             player.setGameMode(GameMode.ADVENTURE);
             Spawn.warp(player);
         }
-        Worlds.deleteWorld(plugin, world);
         plugin.spleefGameList.remove(this);
+        Files.deleteWorld(world);
     }
 
     protected void stop() {
@@ -220,7 +226,8 @@ public final class SpleefGame {
 
     protected void scanChest(Chest chest) {
         Inventory inv = chest.getBlockInventory();
-        String name = chest.getCustomName();
+        Component component = chest.customName();
+        String name = component != null ? plainText().serialize(component) : "";
         if ("[spleef]".equalsIgnoreCase(name)) {
             info("Found spleef chest");
             spleefBlocks.add(chest.getBlock().getRelative(0, -1, 0));
@@ -239,7 +246,7 @@ public final class SpleefGame {
     }
 
     protected void scanSign(Sign sign) {
-        String name = PlainTextComponentSerializer.plainText().serialize(sign.line(0)).toLowerCase();
+        String name = plainText().serialize(sign.getSide(FRONT).line(0)).toLowerCase();
         if ("[spawn]".equals(name)) {
             Location location = sign.getBlock().getLocation();
             location = location.add(0.5, 0.5, 0.5);
@@ -248,12 +255,12 @@ public final class SpleefGame {
             spawnLocations.add(location);
         } else if ("[credits]".equals(name)) {
             for (int i = 1; i < 4; ++i) {
-                String credit = PlainTextComponentSerializer.plainText().serialize(sign.line(i));
+                String credit = plainText().serialize(sign.getSide(FRONT).line(i));
                 if (credit != null) credits.add(credit);
             }
         } else if ("[time]".equals(name)) {
             long time = 0;
-            String arg = PlainTextComponentSerializer.plainText().serialize(sign.line(1)).toLowerCase();
+            String arg = plainText().serialize(sign.getSide(FRONT).line(1)).toLowerCase();
             if ("day".equals(arg)) {
                 time = 1000;
             } else if ("night".equals(arg)) {
@@ -264,11 +271,11 @@ public final class SpleefGame {
                 time = 18000;
             } else {
                 try {
-                    time = Long.parseLong(PlainTextComponentSerializer.plainText().serialize(sign.line(1)));
+                    time = Long.parseLong(plainText().serialize(sign.getSide(FRONT).line(1)));
                 } catch (NumberFormatException nfe) { }
             }
             world.setTime(time);
-            if ("lock".equalsIgnoreCase(PlainTextComponentSerializer.plainText().serialize(sign.line(2)))) {
+            if ("lock".equalsIgnoreCase(plainText().serialize(sign.getSide(FRONT).line(2)))) {
                 world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
             }
         } else {
@@ -417,7 +424,7 @@ public final class SpleefGame {
     protected void showCredits(Player player) {
         if (credits == null || credits.isEmpty()) return;
         player.showTitle(Title.title(empty(),
-                                     text("Built by " + String.join(" ", credits), GREEN)));
+                                     text("Built by " + String.join(" ", buildWorld.getBuilderNames()), GREEN)));
     }
 
     private void tick() {
@@ -599,6 +606,22 @@ public final class SpleefGame {
                 }
                 player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, 0.5f, 1f);
             }
+            if (hasWinner) {
+                info(winnerName + " wins the game");
+                for (Player player : getPresentPlayers()) {
+                    player.showTitle(Title.title(text(winnerName, GREEN),
+                                                 text("Wins the Game!", GREEN)));
+                    player.sendMessage(text(winnerName + " wins the game!", GREEN));
+                }
+            } else {
+                info("Draw! Nobody wins the game");
+                for (Player player : getPresentPlayers()) {
+                    player.showTitle(Title.title(text("Draw", RED),
+                                                 text("Nobody wins!", RED)));
+                    player.sendMessage(text("Draw! Nobody wins.", RED));
+                }
+            }
+            mapReview.remindAllOnce();
             break;
         default: break;
         }
@@ -793,23 +816,6 @@ public final class SpleefGame {
             stop();
             return null;
         }
-        if (ticks % (20 * 5) == 0) {
-            if (hasWinner) {
-                info(winnerName + " wins the game");
-                for (Player player : getPresentPlayers()) {
-                    player.showTitle(Title.title(text(winnerName, GREEN),
-                                                 text("Wins the Game!", GREEN)));
-                    player.sendMessage(text(winnerName + " wins the game!", GREEN));
-                }
-            } else {
-                info("Draw! Nobody wins the game");
-                for (Player player : getPresentPlayers()) {
-                    player.showTitle(Title.title(text("Draw", RED),
-                                                 text("Nobody wins!", RED)));
-                    player.sendMessage(text("Draw! Nobody wins.", RED));
-                }
-            }
-        }
         return null;
     }
 
@@ -943,6 +949,7 @@ public final class SpleefGame {
         sp.setLives(sp.getLives() - 1);
         if (sp.getLives() <= 0) {
             sp.setSpectator();
+            mapReview.remindOnce(player);
         }
         player.setGameMode(GameMode.SPECTATOR);
         player.setHealth(20.0);
@@ -953,13 +960,13 @@ public final class SpleefGame {
         info(player.getName() + " lost a life: " + sp.getLives());
         for (Player other : getPresentPlayers()) {
             if (sp.getLives() > 0) {
-                Component message = text(player.getName() + " got spleef'd and lost a life",
-                                                   RED);
+                Component message = text(player.getName() + " got spleef'd and lost a life", RED);
                 other.sendActionBar(message);
+                other.sendMessage(message);
             } else {
-                Component message = text(player.getName() + " got spleef'd and is out of the game",
-                                                   RED);
+                Component message = text(player.getName() + " got spleef'd and is out of the game", RED);
                 other.sendActionBar(message);
+                other.sendMessage(message);
             }
         }
         Bukkit.getScheduler().runTask(plugin, () -> player.teleport(world.getSpawnLocation()));
@@ -1009,7 +1016,7 @@ public final class SpleefGame {
     }
 
     private void info(String msg) {
-        plugin.getLogger().info("[" + worldName + "] " + msg);
+        plugin.getLogger().info("[" + world.getName() + "] " + msg);
     }
 
     protected void onPlayerSidebar(Player player, List<Component> lines) {
@@ -1044,11 +1051,11 @@ public final class SpleefGame {
             Player itPlayer = it.getPlayer();
             if (itPlayer == null) continue;
             if (it.isPlayer()) {
-                lines.add(text(Unicode.HEART.string + it.getLives() + " ", RED)
-                          .append(itPlayer.displayName()));
+                lines.add(textOfChildren(text(Unicode.HEART.string + it.getLives() + " ", RED),
+                                         text(itPlayer.getName(), WHITE)));
             } else {
-                lines.add(text(Unicode.HEART.string + it.getLives() + " ", DARK_GRAY)
-                          .append(itPlayer.displayName()));
+                lines.add(textOfChildren(text(Unicode.HEART.string + it.getLives() + " ", DARK_GRAY),
+                                         text(itPlayer.getName(), GRAY)));
             }
         }
     }

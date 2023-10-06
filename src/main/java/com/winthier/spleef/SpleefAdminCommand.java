@@ -6,6 +6,7 @@ import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
 import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
+import com.winthier.creative.BuildWorld;
 import com.winthier.playercache.PlayerCache;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,21 +26,19 @@ public final class SpleefAdminCommand extends AbstractCommand<SpleefPlugin> {
     protected void onEnable() {
         rootNode.addChild("start").arguments("<world>")
             .description("Start a game")
-            .completers(CommandArgCompleter.supplyList(() -> plugin.worlds))
+            .completers(CommandArgCompleter.supplyList(this::listSpleefWorldPaths))
             .senderCaller(this::start);
         rootNode.addChild("stop").denyTabCompletion()
             .description("Stop games")
             .senderCaller(this::stop);
-        rootNode.addChild("startvote").denyTabCompletion()
-            .description("Start a map vote")
-            .senderCaller(this::startVote);
-        rootNode.addChild("stopvote").denyTabCompletion()
-            .description("Stop the map vote")
-            .senderCaller(this::stopVote);
         rootNode.addChild("event").arguments("true|false")
             .description("Set event state")
-            .completers(CommandArgCompleter.list(List.of("true", "false")))
+            .completers(CommandArgCompleter.BOOLEAN)
             .senderCaller(this::event);
+        rootNode.addChild("pause").arguments("true|false")
+            .description("Set pause state")
+            .completers(CommandArgCompleter.BOOLEAN)
+            .senderCaller(this::pause);
         rootNode.addChild("suddendeathtime").arguments("<seconds>")
             .description("Set sudden death timer")
             .completers(CommandArgCompleter.integer(i -> i > 0))
@@ -63,6 +62,14 @@ public final class SpleefAdminCommand extends AbstractCommand<SpleefPlugin> {
             .senderCaller(this::scoreReward);
     }
 
+    public List<String> listSpleefWorldPaths() {
+        List<String> result = new ArrayList<>();
+        for (BuildWorld it : BuildWorld.findMinigameWorlds(plugin.MINIGAME_TYPE, false)) {
+            result.add(it.getPath());
+        }
+        return result;
+    }
+
     protected boolean start(CommandSender sender, String[] args) {
         if (args.length < 1) return false;
         String worldName = args[0];
@@ -74,19 +81,26 @@ public final class SpleefAdminCommand extends AbstractCommand<SpleefPlugin> {
             default: throw new CommandWarn("Invalid flag: " + arg);
             }
         }
-        sender.sendMessage("Starting game in " + worldName + "...");
-        SpleefGame game = plugin.startGame(worldName);
-        List<Player> playerList = new ArrayList<>(Bukkit.getOnlinePlayers());
-        Collections.shuffle(playerList);
-        for (Player player : playerList) {
-            if (player.hasPermission("group.streamer") && player.isPermissionSet("group.streamer")) {
-                game.addSpectator(player);
-            } else {
-                game.addPlayer(player);
-            }
+        final BuildWorld buildWorld = BuildWorld.findWithPath(worldName);
+        if (buildWorld == null || buildWorld.getRow().parseMinigame() != plugin.MINIGAME_TYPE) {
+            throw new CommandWarn("Not a spleef world: " + worldName);
         }
-        if (debug) game.setDebug(true);
-        game.changeState(State.COUNTDOWN);
+        sender.sendMessage(text("Starting game: " + buildWorld.getName(), YELLOW));
+        final boolean finalDebug = debug;
+        buildWorld.makeLocalCopyAsync(world -> {
+                SpleefGame game = plugin.startGame(world, buildWorld);
+                List<Player> playerList = new ArrayList<>(Bukkit.getOnlinePlayers());
+                Collections.shuffle(playerList);
+                for (Player player : playerList) {
+                    if (player.hasPermission("group.streamer") && player.isPermissionSet("group.streamer")) {
+                        game.addSpectator(player);
+                    } else {
+                        game.addPlayer(player);
+                    }
+                }
+                if (finalDebug) game.setDebug(true);
+                game.changeState(State.COUNTDOWN);
+            });
         return true;
     }
 
@@ -96,40 +110,31 @@ public final class SpleefAdminCommand extends AbstractCommand<SpleefPlugin> {
             throw new CommandWarn("No games are running!");
         }
         for (SpleefGame game : List.copyOf(plugin.spleefGameList)) {
-            sender.sendMessage(text("Stopping game: " + game.getWorldName()));
+            sender.sendMessage(text("Stopping game: " + game.getWorld().getName()));
             game.stop();
         }
         return true;
     }
 
-    private void startVote(CommandSender sender) {
-        if (!plugin.spleefGameList.isEmpty()) throw new CommandWarn("Game already playing!");
-        if (plugin.spleefMaps.isVoteActive()) throw new CommandWarn("Vote already active!");
-        plugin.spleefMaps.startVote();
-        sender.sendMessage(text("Vote started", AQUA));
-    }
-
-    private void stopVote(CommandSender sender) {
-        if (!plugin.spleefMaps.isVoteActive()) throw new CommandWarn("Vote not active!");
-        plugin.spleefMaps.stopVote();
-        sender.sendMessage(text("Vote stopped", YELLOW));
-    }
-
     protected boolean event(CommandSender sender, String[] args) {
         if (args.length > 1) return false;
         if (args.length >= 1) {
-            try {
-                plugin.save.event = Boolean.parseBoolean(args[0]);
-                plugin.save();
-            } catch (IllegalArgumentException iae) {
-                throw new CommandWarn("Invalid value: " + args[0]);
-            }
-            sender.sendMessage(plugin.save.event
-                               ? text("Event mode enabled", GREEN)
-                               : text("Event mode disabled", RED));
+            plugin.save.event = CommandArgCompleter.requireBoolean(args[0]);
+            plugin.save();
             return true;
         }
         sender.sendMessage(text("Event mode: " + plugin.save.event, YELLOW));
+        return true;
+    }
+
+    protected boolean pause(CommandSender sender, String[] args) {
+        if (args.length > 1) return false;
+        if (args.length >= 1) {
+            plugin.save.pause = CommandArgCompleter.requireBoolean(args[0]);
+            plugin.save();
+            return true;
+        }
+        sender.sendMessage(text("Pause mode: " + plugin.save.pause, YELLOW));
         return true;
     }
 

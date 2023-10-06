@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public final class Save {
     protected boolean event = false;
+    protected boolean pause = false;
     protected long suddenDeathTime = 300L;
     protected long floorRemovalTime = 60L;
     protected Map<UUID, Integer> scores = new HashMap<>();

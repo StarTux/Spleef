@@ -8,7 +8,7 @@ description: The popular Spleef mini game
 authors: [StarTux]
 website: https://cavetale.com
 
-depend: [Core, PlayerCache, Mytems, Spawn, Sidebar, Fam]
+depend: [Core, PlayerCache, Mytems, Spawn, Sidebar, Fam, Creative]
 softdepend: []
 
 commands:

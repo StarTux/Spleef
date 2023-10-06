@@ -1,8 +1,11 @@
 package com.winthier.spleef;
 
+import com.cavetale.core.event.minigame.MinigameMatchType;
 import com.cavetale.core.util.Json;
 import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
+import com.winthier.creative.BuildWorld;
+import com.winthier.creative.vote.MapVote;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,21 +30,20 @@ public final class SpleefPlugin extends JavaPlugin {
     protected final List<SpleefGame> spleefGameList = new ArrayList<>();
     protected final SpleefAdminCommand spleefAdminCommand = new SpleefAdminCommand(this);
     protected final SpleefCommand spleefCommand = new SpleefCommand(this);
-    protected List<String> worlds;
     protected Save save;
     protected List<Highscore> highscore = List.of();
     protected List<Component> highscoreLines = List.of();
-    protected final SpleefMaps spleefMaps = new SpleefMaps(this);;
     public static final Component TITLE = Component.text("Spleef!", GREEN, BOLD);
+    public static final MinigameMatchType MINIGAME_TYPE = MinigameMatchType.SPLEEF;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        loadConfiguration();
         load();
         Bukkit.getPluginManager().registerEvents(eventListener, this);
         spleefAdminCommand.enable();
         spleefCommand.enable();
+        Bukkit.getScheduler().runTaskTimer(this, this::tick, 1L, 1L);
     }
 
     @Override
@@ -51,11 +53,6 @@ public final class SpleefPlugin extends JavaPlugin {
         }
         spleefGameList.clear();
         save();
-    }
-
-    private void loadConfiguration() {
-        worlds = getConfig().getStringList("worlds");
-        spleefMaps.load(worlds);
     }
 
     protected void load() {
@@ -76,16 +73,15 @@ public final class SpleefPlugin extends JavaPlugin {
         }
     }
 
-    public SpleefGame startGame(String worldName) {
-        World world = Worlds.loadWorld(this, worldName);
-        SpleefGame game = new SpleefGame(this, world, worldName);
+    public SpleefGame startGame(World world, BuildWorld buildWorld) {
+        SpleefGame game = new SpleefGame(this, world, buildWorld);
         spleefGameList.add(game);
         game.enable();
         return game;
     }
 
-    public SpleefGame startGameWithAllPlayers(String worldName) {
-        SpleefGame game = startGame(worldName);
+    public SpleefGame startGameWithAllPlayers(World world, BuildWorld buildWorld) {
+        SpleefGame game = startGame(world, buildWorld);
         List<Player> playerList = new ArrayList<>(Bukkit.getOnlinePlayers());
         Collections.shuffle(playerList);
         for (Player player : playerList) {
@@ -96,11 +92,32 @@ public final class SpleefPlugin extends JavaPlugin {
             }
         }
         game.changeState(State.COUNTDOWN);
+        buildWorld.announceMap(world);
         return game;
     }
 
     protected void computeHighscore() {
         highscore = Highscore.of(save.scores);
         highscoreLines = Highscore.sidebar(highscore, TrophyCategory.SPLEEF);
+    }
+
+    public World getLobbyWorld() {
+        return Bukkit.getWorlds().get(0);
+    }
+
+    private void tick() {
+        if (save.pause || !spleefGameList.isEmpty() || getLobbyWorld().getPlayers().size() < 2) {
+            MapVote.stop(MINIGAME_TYPE);
+            return;
+        }
+        if (!MapVote.isActive(MINIGAME_TYPE)) {
+            MapVote.start(MINIGAME_TYPE, vote -> {
+                    vote.setLobbyWorld(getLobbyWorld());
+                    vote.setTitle(TITLE);
+                    vote.setCallback(result -> {
+                            startGameWithAllPlayers(result.getLocalWorldCopy(), result.getBuildWorldWinner());
+                        });
+                });
+        }
     }
 }
