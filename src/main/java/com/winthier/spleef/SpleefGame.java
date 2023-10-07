@@ -746,7 +746,7 @@ public final class SpleefGame {
                     floorBlocks.computeIfAbsent(y, yy -> new ArrayList<>()).add(block);
                     if (y > maxFloor) maxFloor = y;
                 }
-                if (floorBlocks.size() > 1 || (floorBlocks.size() == 1 && playingCount == 2)) {
+                if (floorBlocks.size() > 1 || (floorBlocks.size() == 1 && playingCount == 2) || round >= 5) {
                     List<Block> floor = floorBlocks.get(maxFloor);
                     maxFloor -= 1;
                     for (Block block : floor) {
