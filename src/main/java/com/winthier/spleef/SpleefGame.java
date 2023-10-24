@@ -1,5 +1,6 @@
 package com.winthier.spleef;
 
+import com.cavetale.core.event.minigame.MinigameMatchCompleteEvent;
 import com.cavetale.core.font.Unicode;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.WardrobeItem;
@@ -622,6 +623,13 @@ public final class SpleefGame {
                 }
             }
             mapReview.remindAllOnce();
+            // Minigame Match Complete Event
+            MinigameMatchCompleteEvent mmce = new MinigameMatchCompleteEvent(plugin.MINIGAME_TYPE);
+            for (SpleefPlayer spleefPlayer : spleefPlayers.values()) {
+                if (spleefPlayer.played) mmce.addPlayerUuid(spleefPlayer.uuid);
+                if (spleefPlayer.winner) mmce.addWinnerUuid(spleefPlayer.uuid);
+            }
+            mmce.callEvent();
             break;
         default: break;
         }
