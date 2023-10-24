@@ -575,29 +575,29 @@ public final class SpleefGame {
                     survivor = sp;
                 }
             }
+            int totalBlocksBroken = 0;
+            int totalPlayers = 0;
+            for (SpleefPlayer sp : spleefPlayers.values()) {
+                if (!sp.isPlayed() || sp.getBlocksBroken() == 0) continue;
+                totalBlocksBroken += sp.getBlocksBroken();
+                totalPlayers += 1;
+            }
             if (survivorCount == 1) {
                 hasWinner = true;
                 winnerName = survivor.getName();
                 survivor.setWinner(true);
                 if (plugin.save.event) {
-                    int totalBlocksBroken = 0;
-                    int totalPlayers = 0;
-                    for (SpleefPlayer sp : spleefPlayers.values()) {
-                        if (!sp.isPlayed() || sp.getBlocksBroken() == 0) continue;
-                        totalBlocksBroken += sp.getBlocksBroken();
-                        totalPlayers += 1;
-                    }
                     plugin.save.addScore(survivor.uuid, 5 * totalPlayers);
-                    if (totalBlocksBroken > 0) {
-                        for (SpleefPlayer sp : spleefPlayers.values()) {
-                            int score = (sp.getBlocksBroken() * totalPlayers * 10) / totalBlocksBroken;
-                            if (score > 0) plugin.save.addScore(sp.uuid, score);
-                        }
-                    }
                     plugin.computeHighscore();
                     String cmd = "titles unlockset " + winnerName + " " + String.join(" ", plugin.WINNER_TITLES);
                     info("Dispatching command: " + cmd);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                }
+            }
+            if (plugin.save.event && totalBlocksBroken > 0) {
+                for (SpleefPlayer sp : spleefPlayers.values()) {
+                    int score = (sp.getBlocksBroken() * totalPlayers * 10) / totalBlocksBroken;
+                    if (score > 0) plugin.save.addScore(sp.uuid, score);
                 }
             }
             for (Player player : getPresentPlayers()) {
@@ -754,7 +754,7 @@ public final class SpleefGame {
                     floorBlocks.computeIfAbsent(y, yy -> new ArrayList<>()).add(block);
                     if (y > maxFloor) maxFloor = y;
                 }
-                if (floorBlocks.size() > 1 || (floorBlocks.size() == 1 && playingCount == 2)) {
+                if (floorBlocks.size() > 1 || (floorBlocks.size() == 1 && playingCount == 2) || round >= 5) {
                     List<Block> floor = floorBlocks.get(maxFloor);
                     maxFloor -= 1;
                     for (Block block : floor) {
