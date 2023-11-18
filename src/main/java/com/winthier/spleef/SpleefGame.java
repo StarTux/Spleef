@@ -957,7 +957,6 @@ public final class SpleefGame {
         sp.setLives(sp.getLives() - 1);
         if (sp.getLives() <= 0) {
             sp.setSpectator();
-            mapReview.remindOnce(player);
         }
         player.setGameMode(GameMode.SPECTATOR);
         player.setHealth(20.0);
