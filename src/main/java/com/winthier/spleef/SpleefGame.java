@@ -730,7 +730,7 @@ public final class SpleefGame {
                         } else if (blockTicks == suddenDeathBlockTicks - 20) {
                             Location loc = block.getLocation().add(0.5, 0.5, 0.5);
                             loc.getWorld().playSound(loc, Sound.ENTITY_ITEM_BREAK, 0.5f, 1.0f);
-                            loc.getWorld().spawnParticle(Particle.BLOCK_DUST,
+                            loc.getWorld().spawnParticle(Particle.BLOCK_CRACK,
                                                          loc,
                                                          32,
                                                          .3f, .3f, .3f,
@@ -889,7 +889,7 @@ public final class SpleefGame {
         if (player.getLocation().getBlockY() < deathLevel) return;
         Block block = event.getBlock();
         if (!isSpleefBlock(block) || block.isEmpty()) return;
-        world.spawnParticle(Particle.BLOCK_DUST,
+        world.spawnParticle(Particle.BLOCK_CRACK,
                             block.getLocation().add(0.5, 0.5, 0.5),
                             64,
                             .3f, .3f, .3f,
@@ -1007,7 +1007,7 @@ public final class SpleefGame {
                     if (x * x + y * y + z * z > r * r) continue;
                     Block block = center.getRelative(x, y, z);
                     if (block.isEmpty() || !spleefBlocks.contains(block)) continue;
-                    world.spawnParticle(Particle.BLOCK_DUST,
+                    world.spawnParticle(Particle.BLOCK_CRACK,
                                         block.getLocation().add(0.5, 0.5, 0.5),
                                         8,
                                         .3f, .3f, .3f,
