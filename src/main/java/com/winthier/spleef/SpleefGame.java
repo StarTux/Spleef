@@ -918,7 +918,11 @@ public final class SpleefGame {
     }
 
     public void onEntityDamage(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof Player)) {
+        if (!(event.getEntity() instanceof Player player)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (state != State.SPLEEF) {
             event.setCancelled(true);
             return;
         }
@@ -932,14 +936,16 @@ public final class SpleefGame {
             }
             return;
         }
-        Player player = (Player) event.getEntity();
-        SpleefPlayer sp = getSpleefPlayer(player);
+        final SpleefPlayer sp = getSpleefPlayer(player);
+        if (!sp.isPlayer()) {
+            event.setCancelled(true);
+            return;
+        }
         if (event.getCause() == EntityDamageEvent.DamageCause.VOID) {
+            event.setCancelled(true);
             player.teleport(world.getSpawnLocation());
             player.setHealth(0.0);
         }
-        if (sp.isPlayer()) return;
-        event.setCancelled(true);
     }
 
     public void onPlayerDeath(PlayerDeathEvent event) {
