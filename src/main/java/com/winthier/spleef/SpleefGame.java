@@ -308,7 +308,11 @@ public final class SpleefGame {
                 BlockFace.NORTH,
                 BlockFace.EAST,
                 BlockFace.SOUTH,
-                BlockFace.WEST
+                BlockFace.WEST,
+                BlockFace.NORTH_EAST,
+                BlockFace.SOUTH_EAST,
+                BlockFace.SOUTH_WEST,
+                BlockFace.NORTH_WEST,
             };
             for (BlockFace face : faces) {
                 Block neighbor = block.getRelative(face);
