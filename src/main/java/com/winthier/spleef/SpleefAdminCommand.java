@@ -189,8 +189,8 @@ public final class SpleefAdminCommand extends AbstractCommand<SpleefPlugin> {
                                      "spleef",
                                      TrophyCategory.SPLEEF,
                                      plugin.TITLE,
-                                     hi -> ("You broke "
-                                            + hi.score + " block" + (hi.score == 1 ? "" : "s")
+                                     hi -> ("You scored "
+                                            + hi.score + " point" + (hi.score == 1 ? "" : "s")
                                             + " while playing Spleef"));
         sender.sendMessage(text("Rewarded " + count + " players", AQUA));
     }
