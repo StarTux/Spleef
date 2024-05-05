@@ -2,6 +2,7 @@ package com.winthier.spleef;
 
 import com.cavetale.core.event.minigame.MinigameMatchCompleteEvent;
 import com.cavetale.core.font.Unicode;
+import com.cavetale.core.money.Money;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.WardrobeItem;
 import com.winthier.creative.BuildWorld;
@@ -597,7 +598,10 @@ public final class SpleefGame {
             if (plugin.save.event && totalBlocksBroken > 0) {
                 for (SpleefPlayer sp : spleefPlayers.values()) {
                     int score = (sp.getBlocksBroken() * totalPlayers * 10) / totalBlocksBroken;
-                    if (score > 0) plugin.save.addScore(sp.uuid, score);
+                    if (score > 0) {
+                        plugin.save.addScore(sp.uuid, score);
+                        Money.get().give(sp.uuid, score * 100, plugin, "Spleef Event");
+                    }
                 }
             }
             for (Player player : getPresentPlayers()) {
