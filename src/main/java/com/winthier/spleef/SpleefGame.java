@@ -495,7 +495,7 @@ public final class SpleefGame {
         for (Entity e: world.getEntities()) {
             switch (e.getType()) {
             case CREEPER:
-            case PRIMED_TNT:
+            case TNT:
             case SKELETON:
                 e.remove();
             default:
@@ -550,17 +550,17 @@ public final class SpleefGame {
                     makeMobile(player);
                     if (!player.getInventory().contains(Material.NETHERITE_PICKAXE)) {
                         ItemStack pickaxe = new ItemStack(Material.NETHERITE_PICKAXE);
-                        pickaxe.addUnsafeEnchantment(Enchantment.DIG_SPEED, 9);
+                        pickaxe.addUnsafeEnchantment(Enchantment.EFFICIENCY, 9);
                         player.getInventory().addItem(pickaxe);
                     }
                     if (!player.getInventory().contains(Material.NETHERITE_SHOVEL)) {
                         ItemStack shovel = new ItemStack(Material.NETHERITE_SHOVEL);
-                        shovel.addUnsafeEnchantment(Enchantment.DIG_SPEED, 9);
+                        shovel.addUnsafeEnchantment(Enchantment.EFFICIENCY, 9);
                         player.getInventory().addItem(shovel);
                     }
                     if (!player.getInventory().contains(Material.NETHERITE_AXE)) {
                         ItemStack axe = new ItemStack(Material.NETHERITE_AXE);
-                        axe.addUnsafeEnchantment(Enchantment.DIG_SPEED, 9);
+                        axe.addUnsafeEnchantment(Enchantment.EFFICIENCY, 9);
                         player.getInventory().addItem(axe);
                     }
                 }
@@ -738,7 +738,7 @@ public final class SpleefGame {
                         } else if (blockTicks == suddenDeathBlockTicks - 20) {
                             Location loc = block.getLocation().add(0.5, 0.5, 0.5);
                             loc.getWorld().playSound(loc, Sound.ENTITY_ITEM_BREAK, 0.5f, 1.0f);
-                            loc.getWorld().spawnParticle(Particle.BLOCK_CRACK,
+                            loc.getWorld().spawnParticle(Particle.BLOCK,
                                                          loc,
                                                          32,
                                                          .3f, .3f, .3f,
@@ -897,7 +897,7 @@ public final class SpleefGame {
         if (player.getLocation().getBlockY() < deathLevel) return;
         Block block = event.getBlock();
         if (!isSpleefBlock(block) || block.isEmpty()) return;
-        world.spawnParticle(Particle.BLOCK_CRACK,
+        world.spawnParticle(Particle.BLOCK,
                             block.getLocation().add(0.5, 0.5, 0.5),
                             64,
                             .3f, .3f, .3f,
@@ -1021,7 +1021,7 @@ public final class SpleefGame {
                     if (x * x + y * y + z * z > r * r) continue;
                     Block block = center.getRelative(x, y, z);
                     if (block.isEmpty() || !spleefBlocks.contains(block)) continue;
-                    world.spawnParticle(Particle.BLOCK_CRACK,
+                    world.spawnParticle(Particle.BLOCK,
                                         block.getLocation().add(0.5, 0.5, 0.5),
                                         8,
                                         .3f, .3f, .3f,
@@ -1032,7 +1032,7 @@ public final class SpleefGame {
             }
         }
         Location loc = event.getEntity().getLocation();
-        loc.getWorld().spawnParticle(Particle.EXPLOSION_HUGE, loc, 1, 0.1f, 0.1f, 0.1f, 0.1f);
+        loc.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, loc, 1, 0.1f, 0.1f, 0.1f, 0.1f);
         loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.2f);
     }
 
