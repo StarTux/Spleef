@@ -593,7 +593,6 @@ public final class SpleefGame {
                 survivor.setWinner(true);
                 if (plugin.save.event) {
                     plugin.save.addScore(survivor.uuid, 5 * totalPlayers);
-                    plugin.computeHighscore();
                     String cmd = "titles unlockset " + winnerName + " " + String.join(" ", plugin.WINNER_TITLES);
                     info("Dispatching command: " + cmd);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
@@ -607,6 +606,9 @@ public final class SpleefGame {
                         Money.get().give(sp.uuid, score * 100, plugin, "Spleef Event");
                     }
                 }
+            }
+            if (plugin.save.event) {
+                plugin.computeHighscore();
             }
             for (Player player : getPresentPlayers()) {
                 if (getSpleefPlayer(player).isPlayer()) {
