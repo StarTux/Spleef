@@ -809,7 +809,7 @@ public final class SpleefGame {
                                 creeper.setPowered(true);
                             }
                             if (random.nextDouble() < creeperSpeedChance) {
-                                creeper.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED)
+                                creeper.getAttribute(Attribute.MOVEMENT_SPEED)
                                     .addModifier(new AttributeModifier("Spleef", (float) creeperSpeedMultiplier,
                                                                        AttributeModifier.Operation.MULTIPLY_SCALAR_1));
                             }
