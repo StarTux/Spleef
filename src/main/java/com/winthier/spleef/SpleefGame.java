@@ -615,7 +615,7 @@ public final class SpleefGame {
                     getSpleefPlayer(player).setSpectator();
                     player.setGameMode(GameMode.SPECTATOR);
                 }
-                player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, 0.5f, 1f);
+                player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, 0.5f, 1f);
             }
             if (hasWinner) {
                 info(winnerName + " wins the game");
@@ -660,14 +660,14 @@ public final class SpleefGame {
                 for (Player player : getPresentPlayers()) {
                     player.sendMessage(message);
                     player.showTitle(Title.title(empty(), message));
-                    player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 0.5f, 1f);
+                    player.playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 0.5f, 1f);
                 }
             } else if (secondsLeft <= 10) {
                 for (Player player : getPresentPlayers()) {
                     player.showTitle(Title.title(text(secondsLeft, GREEN),
                                                  text("Round " + round, GREEN)));
                     if (secondsLeft >= 0L && secondsLeft <= 24L) {
-                        player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int) (24L - secondsLeft)));
+                        player.playNote(player.getLocation(), Instrument.PIANO, new Note((int) (24L - secondsLeft)));
                     }
                 }
             } else if (secondsLeft == 20) {
@@ -689,7 +689,7 @@ public final class SpleefGame {
             for (Player player : getPresentPlayers()) {
                 player.sendMessage(message);
                 player.showTitle(Title.title(empty(), message));
-                player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 2.0f);
+                player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 2.0f);
             }
         }
         int aliveCount = 0;
@@ -725,7 +725,7 @@ public final class SpleefGame {
                                                  text("Sudden Death", DARK_RED)));
                     player.sendMessage(text("Sudden Death activated. Blocks will fade under your feet.",
                                             DARK_RED));
-                    player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 1.5f);
+                    player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 1.5f);
                 }
                 floorRemoveCountdownTicks = 20 * (int) plugin.save.floorRemovalTime;
             }
@@ -774,7 +774,7 @@ public final class SpleefGame {
                         player.showTitle(Title.title(empty(),
                                                      text("Layer Removed!", DARK_RED)));
                         player.sendMessage(text("Layer Removed!", DARK_RED));
-                        player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 2f);
+                        player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 2f);
                     }
                 } else {
                     secondsLeft = 0;
