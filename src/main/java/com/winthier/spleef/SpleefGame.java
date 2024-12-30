@@ -35,6 +35,7 @@ import org.bukkit.GameRule;
 import org.bukkit.Instrument;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Note;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -112,7 +113,7 @@ public final class SpleefGame {
     protected double creeperChance = 0.125;
     protected double creeperPowerChance = 0.33;
     protected double creeperSpeedChance = 0.33;
-    protected double creeperSpeedMultiplier = 1.0;
+    protected float creeperSpeedMultiplier = 1.0f;
     protected boolean giveTNT = true;
     protected boolean giveCreeperEggs = true;
     protected boolean placeCreeperSnowBlocks = true;
@@ -810,7 +811,8 @@ public final class SpleefGame {
                             }
                             if (random.nextDouble() < creeperSpeedChance) {
                                 creeper.getAttribute(Attribute.MOVEMENT_SPEED)
-                                    .addModifier(new AttributeModifier("Spleef", (float) creeperSpeedMultiplier,
+                                    .addModifier(new AttributeModifier(new NamespacedKey(plugin, "creeper_speed"),
+                                                                       creeperSpeedMultiplier,
                                                                        AttributeModifier.Operation.MULTIPLY_SCALAR_1));
                             }
                             creeper.setMaxFuseTicks(5);
