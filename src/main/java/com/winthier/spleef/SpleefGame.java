@@ -564,6 +564,7 @@ public final class SpleefGame {
                         axe.addUnsafeEnchantment(Enchantment.EFFICIENCY, 9);
                         player.getInventory().addItem(axe);
                     }
+                    player.getInventory().setBoots(new ItemStack(Material.LEATHER_BOOTS));
                 }
             }
             roundShouldEnd = false;
