@@ -39,6 +39,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Note;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
@@ -1109,6 +1110,11 @@ public final class SpleefGame {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
-        event.setUseInteractedBlock(PlayerInteractEvent.Result.DENY);
+        if (!event.hasBlock()) {
+            return;
+        }
+        if (Tag.TRAPDOORS.isTagged(event.getClickedBlock().getType())) {
+            event.setUseInteractedBlock(PlayerInteractEvent.Result.DENY);
+        }
     }
 }
