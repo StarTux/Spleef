@@ -80,9 +80,8 @@ public final class SpleefPlugin extends JavaPlugin {
         return game;
     }
 
-    public SpleefGame startGameWithAllPlayers(World world, BuildWorld buildWorld) {
-        SpleefGame game = startGame(world, buildWorld);
-        List<Player> playerList = new ArrayList<>(Bukkit.getOnlinePlayers());
+    public SpleefGame startGame(World world, BuildWorld buildWorld, List<Player> playerList) {
+        final SpleefGame game = startGame(world, buildWorld);
         Collections.shuffle(playerList);
         for (Player player : playerList) {
             if (player.hasPermission("group.streamer") && player.isPermissionSet("group.streamer")) {
@@ -114,8 +113,11 @@ public final class SpleefPlugin extends JavaPlugin {
             MapVote.start(MINIGAME_TYPE, vote -> {
                     vote.setLobbyWorld(getLobbyWorld());
                     vote.setTitle(TITLE);
+                    if (save.event) {
+                        vote.setDesiredGroupSize(5);
+                    }
                     vote.setCallback(result -> {
-                            startGameWithAllPlayers(result.getLocalWorldCopy(), result.getBuildWorldWinner());
+                            startGame(result.getLocalWorldCopy(), result.getBuildWorldWinner(), result.getPlayers());
                         });
                 });
         }
