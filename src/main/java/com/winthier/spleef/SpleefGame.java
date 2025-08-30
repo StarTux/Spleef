@@ -523,7 +523,7 @@ public final class SpleefGame {
                     player.setFoodLevel(20);
                     player.setSaturation(20.0f);
                     makeImmobile(sp.getPlayer());
-                    for (Player other : Bukkit.getOnlinePlayers()) {
+                    for (Player other : getPresentPlayers()) {
                         other.hidePlayer(plugin, player);
                         other.showPlayer(plugin, player);
                     }
@@ -725,7 +725,7 @@ public final class SpleefGame {
             secondsLeft = plugin.save.suddenDeathTime - seconds;
             if (secondsLeft <= 0) {
                 suddenDeathActive = true;
-                for (Player player : Bukkit.getOnlinePlayers()) {
+                for (Player player : getPresentPlayers()) {
                     player.showTitle(Title.title(empty(),
                                                  text("Sudden Death", DARK_RED)));
                     player.sendMessage(text("Sudden Death activated. Blocks will fade under your feet.",
@@ -775,7 +775,7 @@ public final class SpleefGame {
                     for (Block block : floor) {
                         block.setType(Material.AIR);
                     }
-                    for (Player player : Bukkit.getOnlinePlayers()) {
+                    for (Player player : getPresentPlayers()) {
                         player.showTitle(Title.title(empty(),
                                                      text("Layer Removed!", DARK_RED)));
                         player.sendMessage(text("Layer Removed!", DARK_RED));
