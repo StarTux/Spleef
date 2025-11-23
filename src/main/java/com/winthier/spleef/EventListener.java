@@ -2,6 +2,7 @@ package com.winthier.spleef;
 
 import com.cavetale.core.event.hud.PlayerHudEvent;
 import com.cavetale.core.event.hud.PlayerHudPriority;
+import com.cavetale.core.event.player.PlayerTPAEvent;
 import com.winthier.spawn.Spawn;
 import java.util.ArrayList;
 import java.util.List;
@@ -120,5 +121,11 @@ public final class EventListener implements Listener {
             lines.addAll(plugin.highscoreLines);
         }
         if (!lines.isEmpty()) event.sidebar(PlayerHudPriority.HIGHEST, lines);
+    }
+
+    @EventHandler
+    private void onPlayerTPA(PlayerTPAEvent event) {
+        // Cancel any and all requests for now.
+        event.setCancelled(true);
     }
 }
