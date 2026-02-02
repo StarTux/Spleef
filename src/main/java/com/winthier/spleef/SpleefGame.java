@@ -980,7 +980,7 @@ public final class SpleefGame {
         if (sp.getLives() <= 0) {
             sp.setSpectator();
         }
-        player.setGameMode(GameMode.SPECTATOR);
+        Bukkit.getScheduler().runTask(plugin, () -> player.setGameMode(GameMode.SPECTATOR));
         player.setHealth(20.0);
         player.setFoodLevel(20);
         player.setSaturation(20.0f);
