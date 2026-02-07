@@ -31,6 +31,9 @@ public final class SpleefAdminCommand extends AbstractCommand<SpleefPlugin> {
         rootNode.addChild("stop").denyTabCompletion()
             .description("Stop games")
             .senderCaller(this::stop);
+        rootNode.addChild("skip").denyTabCompletion()
+            .description("Skip something")
+            .playerCaller(this::skip);
         rootNode.addChild("event").arguments("true|false")
             .description("Set event state")
             .completers(CommandArgCompleter.BOOLEAN)
@@ -114,6 +117,19 @@ public final class SpleefAdminCommand extends AbstractCommand<SpleefPlugin> {
             game.stop();
         }
         return true;
+    }
+
+    private void skip(Player player) {
+        final boolean result = plugin.applyGame(player.getWorld(), game -> {
+                if (!game.skip()) {
+                    player.sendMessage(text("Cannot skip right now", RED));
+                } else {
+                    player.sendMessage(text("Skipped!", GREEN));
+                }
+            });
+        if (!result) {
+            throw new CommandWarn("No game found!");
+        }
     }
 
     protected boolean event(CommandSender sender, String[] args) {

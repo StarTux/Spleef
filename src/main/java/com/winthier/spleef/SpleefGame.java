@@ -984,6 +984,7 @@ public final class SpleefGame {
         player.setHealth(20.0);
         player.setFoodLevel(20);
         player.setSaturation(20.0f);
+        player.teleport(world.getSpawnLocation());
         event.setKeepInventory(true);
         event.getDrops().clear();
         info(player.getName() + " lost a life: " + sp.getLives());
@@ -1115,6 +1116,16 @@ public final class SpleefGame {
         }
         if (Tag.TRAPDOORS.isTagged(event.getClickedBlock().getType())) {
             event.setUseInteractedBlock(PlayerInteractEvent.Result.DENY);
+        }
+    }
+
+    public boolean skip() {
+        switch (state) {
+        case COUNTDOWN:
+            final int totalSeconds = round <= 1 ? 30 : 10;
+            stateTicks = totalSeconds * 20;
+            return true;
+        default: return false;
         }
     }
 }

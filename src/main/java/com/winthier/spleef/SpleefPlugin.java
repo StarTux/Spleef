@@ -65,12 +65,14 @@ public final class SpleefPlugin extends JavaPlugin {
         Json.save(new File(getDataFolder(), "save.json"), save);
     }
 
-    public void applyGame(World world, Consumer<SpleefGame> callback) {
+    public boolean applyGame(World world, Consumer<SpleefGame> callback) {
         for (SpleefGame game : List.copyOf(spleefGameList)) {
             if (game.world.equals(world)) {
                 callback.accept(game);
+                return true;
             }
         }
+        return false;
     }
 
     public SpleefGame startGame(World world, BuildWorld buildWorld) {
