@@ -980,10 +980,14 @@ public final class SpleefGame {
         if (sp.getLives() <= 0) {
             sp.setSpectator();
         }
-        Bukkit.getScheduler().runTask(plugin, () -> player.setGameMode(GameMode.SPECTATOR));
-        player.setHealth(20.0);
-        player.setFoodLevel(20);
-        player.setSaturation(20.0f);
+        // Calling setHealth(20.0) here causes the player to freeze
+        // for unknown reasons.  This does not happen in the scope
+        // further up.
+        //
+        // The combination with setGameMode(SPECTATOR), in any order,
+        // appears to trigger the freezing, even if scheduled on the
+        // next tick.
+        player.setGameMode(GameMode.SPECTATOR);
         player.teleport(world.getSpawnLocation());
         event.setKeepInventory(true);
         event.getDrops().clear();
@@ -999,7 +1003,6 @@ public final class SpleefGame {
                 other.sendMessage(message);
             }
         }
-        Bukkit.getScheduler().runTask(plugin, () -> player.teleport(world.getSpawnLocation()));
     }
 
     public void onPlayerToggleFlight(PlayerToggleFlightEvent event) {
