@@ -209,5 +209,6 @@ public final class SpleefAdminCommand extends AbstractCommand<SpleefPlugin> {
                                             + hi.score + " point" + (hi.score == 1 ? "" : "s")
                                             + " while playing Spleef"));
         sender.sendMessage(text("Rewarded " + count + " players", AQUA));
+        Highscore.rewardMoneyWithFeedback(sender, plugin, plugin.save.scores, "Spleef");
     }
 }
