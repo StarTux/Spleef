@@ -24,6 +24,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.spigotmc.event.player.PlayerSpawnLocationEvent;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
@@ -39,6 +40,15 @@ public final class EventListener implements Listener {
             return;
         }
         event.setSpawnLocation(plugin.spleefGameList.get(0).getSpawnLocation(event.getPlayer()));
+    }
+
+    @EventHandler
+    public void onPlayerRespawn(PlayerRespawnEvent event) {
+        if (plugin.spleefGameList.isEmpty()) {
+            event.setRespawnLocation(Spawn.get());
+            return;
+        }
+        plugin.applyGame(event.getPlayer().getWorld(), game -> event.setRespawnLocation(game.getSpawnLocation(event.getPlayer())));
     }
 
     @EventHandler
