@@ -605,7 +605,7 @@ public final class SpleefGame {
             }
             if (plugin.save.event && totalBlocksBroken > 0) {
                 for (SpleefPlayer sp : spleefPlayers.values()) {
-                    int score = (sp.getBlocksBroken() * 50) / totalBlocksBroken;
+                    int score = 1 + (sp.getBlocksBroken() * 50) / totalBlocksBroken;
                     if (score > 0) {
                         plugin.save.addScore(sp.uuid, score);
                         Money.get().give(sp.uuid, score * 100, plugin, "Spleef Event");
