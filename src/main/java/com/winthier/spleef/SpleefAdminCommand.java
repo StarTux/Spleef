@@ -7,6 +7,7 @@ import com.cavetale.core.command.CommandWarn;
 import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
 import com.winthier.creative.BuildWorld;
+import com.winthier.kit.Kits;
 import com.winthier.playercache.PlayerCache;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -210,5 +211,6 @@ public final class SpleefAdminCommand extends AbstractCommand<SpleefPlugin> {
                                             + " while playing Spleef"));
         sender.sendMessage(text("Rewarded " + count + " players", AQUA));
         Highscore.rewardMoneyWithFeedback(sender, plugin, plugin.save.scores, "Spleef");
+        Kits.autoCreateKit(sender, "spleef", plugin.save.scores.keySet());
     }
 }
